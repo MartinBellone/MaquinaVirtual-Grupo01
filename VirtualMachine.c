@@ -1,6 +1,7 @@
 #include "VirtualMachine.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define LAR 0 
 #define MAR 1
@@ -31,17 +32,22 @@ void writeMemory(){
 void readFile(TVM *vm, char name[]){     //funcion para leer el vmx
     FILE *arch;
     int i=0; //direccion de memoria a guardar el byte
-    char c;
+    char c, header[8];
 
     arch=fopen(name,"rb");
     if (arch==NULL)
         printf("ERROR al abrir el archivo");
-    else
-        while (fread(&c,sizeof(char),1,arch)==1){   //TODO: revisar fread
-            vm->mem[i]=c;
-            i++;
+    else{
+        fread(header, 7*sizeof(char), 7, arch);
+        if(strcmp(header, "VMX251") == 0){
+            // Leer tamaño y armar tabla otro fread
+            while (fread(&c,sizeof(char),1,arch)==1){   //TODO: revisar fread
+                vm->mem[i]=c;
+                i++;
+            }
+            initVm(vm,i);
         }
-        initVm(vm,i); 
+    } 
 }
 
 void readInstruction(TVM *vm){
