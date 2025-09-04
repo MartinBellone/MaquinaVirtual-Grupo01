@@ -44,7 +44,7 @@ void readFile(TVM *vm, char name[]){     //funcion para leer el vmx
 
     arch=fopen(name,"rb");
     if (arch==NULL)
-        printf("ERROR al abrir el archivo");
+         printf("ERROR al abrir el archivo");
     else{
         // Lectura del identificador y version del archivo
         fread(header, 5*sizeof(char), 5, arch);
@@ -55,17 +55,30 @@ void readFile(TVM *vm, char name[]){     //funcion para leer el vmx
             // Inicializo tabla de segmentos
             initTSR(vm, size);
 
-
-            // Leer codigo
-            while (fread(&c,sizeof(char),1,arch)==1){   //TODO: revisar fread
-                vm->mem[i]=c;
-                i++;
+            if (vm->tableSeg[1].size <= 0){  //si se supera el tamaño del segmento de codigo, salir
+                 printf("Error: El programa es demasiado grande para la memoria asignada.\n");
+                }
+            else{
+                 // Leer codigo
+                while (fread(&c,sizeof(char),1,arch)==1){ 
+                    vm->mem[i]=c;
+                    i++;
+                }
+                initVm(vm);
+               
             }
-            initVm(vm,i);
         }
+        else
+          printf("Error: Formato de archivo incorrecto.\n");
+        fclose(arch);
     } 
+    //TODO cambiar los prints
+        }
+void initVm(TVM *vm){
+    vm->reg[CS]=0;  //segmento de codigo
+    vm->reg[IP]= vm->reg[CS];  //contador de instrucciones apunta al inicio del segmento de codigo
+    vm->reg[DS]= 1 << 16;  //segmento de datos
 }
-
 void readInstruction(TVM *vm){
     char instruction;
     int maskOPC=0b00011111;  //mascara para obtener el codigo de operacion
@@ -77,4 +90,5 @@ void readInstruction(TVM *vm){
     TOP2= (instruction & maskTOP2)>>6;
     TOP1= (instruction & maskTOP1)>>4;
     vm->reg[OPC]= instruction & maskOPC;
+    //TODO puntero a funcion segun OPC
 }

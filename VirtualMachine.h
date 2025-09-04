@@ -13,4 +13,6 @@ typedef struct{
 void readMemory(/*Completar*/);
 void writeMemory(/*Completar*/);
 void readFile(TVM * vm, char *fileName); // Funcion para leer el archivo vmx
+void initVm(TVM *vm); // Funcion para inicializar la maquina virtual
 void readIntruction(TVM * vm);
+
