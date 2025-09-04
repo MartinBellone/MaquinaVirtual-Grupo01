@@ -29,18 +29,34 @@ void writeMemory(){
 
 }
 
+void initTSR(TVM * vm, char *size){
+    vm->tableSeg[0].base=0;
+    strcpy(vm->tableSeg[0].size,size);
+    strcpy(vm->tableSeg[1].size,size);
+    int cantBytes = atoi(size);
+    vm->tableSeg[1].size = 16384 - cantBytes;
+}
+
 void readFile(TVM *vm, char name[]){     //funcion para leer el vmx
     FILE *arch;
     int i=0; //direccion de memoria a guardar el byte
-    char c, header[8];
+    char c, size[2], header[8];
 
     arch=fopen(name,"rb");
     if (arch==NULL)
         printf("ERROR al abrir el archivo");
     else{
-        fread(header, 7*sizeof(char), 7, arch);
+        // Lectura del identificador y version del archivo
+        fread(header, 5*sizeof(char), 5, arch);
         if(strcmp(header, "VMX251") == 0){
-            // Leer tamaño y armar tabla otro fread
+            // Leo tamaño del archivo
+            fread(size, 2*sizeof(char), 2, arch);
+
+            // Inicializo tabla de segmentos
+            initTSR(vm, size);
+
+
+            // Leer codigo
             while (fread(&c,sizeof(char),1,arch)==1){   //TODO: revisar fread
                 vm->mem[i]=c;
                 i++;
