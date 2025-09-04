@@ -21,7 +21,16 @@
 #define CS 26
 #define DS 27
 
-void readMemory(){
+int convertToPhysicalAddress(TVM *vm){
+    int rMAR, rMBR;
+    int segment, baseSeg, offSeg;
+    segment = vm->reg[LAR] & 0xFFFF0000;
+    baseSeg = vm->tableSeg[segment].base;
+    offSeg = vm->reg[LAR] & 0x0000FFFF;
+    return baseSeg + offSeg;
+}
+
+void readMemory(TVM *vm){
 
 }
 
@@ -54,7 +63,7 @@ void readFile(TVM *vm, char name[]){     //funcion para leer el vmx
 
             // Inicializo tabla de segmentos
             initTSR(vm, size);
-
+            
 
             // Leer codigo
             while (fread(&c,sizeof(char),1,arch)==1){   //TODO: revisar fread
