@@ -22,7 +22,6 @@
 #define DS 27
 
 int convertToPhysicalAddress(TVM *vm){
-    int rMAR, rMBR;
     int segment, baseSeg, offSeg;
     segment = vm->reg[LAR] & 0xFFFF0000;
     baseSeg = vm->tableSeg[segment].base;
@@ -31,10 +30,13 @@ int convertToPhysicalAddress(TVM *vm){
 }
 
 void readMemory(TVM *vm){
-
+    int physAddr = convertToPhysicalAddress(vm);
+    vm->reg[MAR] = physAddr;
+    vm->reg[MBR] = vm->mem[MAR];
 }
 
-void writeMemory(){
+void writeMemory(TVM *vm){
+    int physAddr = convertToPhysicalAddress(vm);
 
 }
 
