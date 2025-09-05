@@ -72,8 +72,8 @@ void readFile(TVM *vm, char name[]){     //funcion para leer el vmx
           printf("Error: Formato de archivo incorrecto.\n");
         fclose(arch);
     } 
-    //TODO cambiar los prints
-        }
+    //TODO cambiar los prints y revisar en general
+}
 void initVm(TVM *vm){
     vm->reg[CS]=0;  //segmento de codigo
     vm->reg[IP]= vm->reg[CS];  //contador de instrucciones apunta al inicio del segmento de codigo
@@ -90,5 +90,34 @@ void readInstruction(TVM *vm){
     TOP2= (instruction & maskTOP2)>>6;
     TOP1= (instruction & maskTOP1)>>4;
     vm->reg[OPC]= instruction & maskOPC;
+
+    if (TOP2==0b11) //carga operando 2
+        vm->reg[OP2] = readMemory(/*Completar*/);
+    else{ //lee operandos de code segment
+        vm->reg[OP2] = TOP2 << 24; //carga en el byte mas significativo con el tipo de operando
+        leeOp(vm,TOP2,OP2);
+    }
+    if (TOP1==0b11) //carga operando 1
+        vm->reg[OP1] = readMemory(/*Completar*/); //da error por el tipo de la funcion
+    else{
+        vm->reg[OP1] = TOP1 << 24; //carga en el byte mas significativo con el tipo de operando
+        leeOp(vm,TOP1,OP1);
+    }
     //TODO puntero a funcion segun OPC
 }
+void readOp(TVM *vm,int TOP, int numOp){
+    if (TOP == 0b01){ //registro
+        vm->reg[numOp] = vm->mem[vm->reg[IP]+1]; //lee el registro
+        vm->reg[IP]++; //incrementa el contador de instrucciones
+    }
+    else{ //inmediato
+        vm->reg[numOp] = (vm->mem[vm->reg[IP]+1] << 8) | vm->mem[vm->reg[IP]+2]; //lee el inmediato
+        vm->reg[IP]+=2; //incrementa el contador de instrucciones
+    }
+}
+
+void MOV(TVM *vm){
+    int mask=0x0FFF;
+    vm->reg[vm->reg[OP2 & mask]] = vm->reg[vm->reg[OP1 & mask]];
+}
+

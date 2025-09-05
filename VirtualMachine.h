@@ -15,4 +15,11 @@ void writeMemory(/*Completar*/);
 void readFile(TVM * vm, char *fileName); // Funcion para leer el archivo vmx
 void initVm(TVM *vm); // Funcion para inicializar la maquina virtual
 void readIntruction(TVM * vm);
+void readOp(TVM *vm,int TOP, int numOp);
+
+void MOV(TVM *vm);
+void ADD(TVM *vm);
+void SUB(TVM *vm);
+void MUL(TVM *vm);
+void DIV(TVM *vm);
 
