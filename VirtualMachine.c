@@ -118,6 +118,9 @@ void readOp(TVM *vm,int TOP, int numOp){
 
 void MOV(TVM *vm){
     int mask=0x0FFF;
-    vm->reg[vm->reg[OP2 & mask]] = vm->reg[vm->reg[OP1 & mask]];
+    int opAux;
+    opAux= vm->reg[OP1] & mask; //obtengo el operando sin el tipo
+    opAux = (opAux << 8) >> 8; //extiendo el signo
+    vm->reg[vm->reg[OP2] & mask] = opAux; //muevo el valor al registro destino
 }
 
