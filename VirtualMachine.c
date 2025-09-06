@@ -32,7 +32,7 @@ int convertToPhysicalAddress(TVM *vm){
 void readMemory(TVM *vm){
     int physAddr = convertToPhysicalAddress(vm);
     vm->reg[MAR] = physAddr;
-    vm->reg[MBR] = vm->mem[MAR];
+    vm->reg[MBR] = vm->mem[vm->reg[MAR]];
 }
 
 void writeMemory(TVM *vm){
@@ -49,7 +49,7 @@ void initTSR(TVM * vm, char *size){
 }
 
 void readFile(TVM *vm, char name[]){     //funcion para leer el vmx
-    FILE *arch;
+    FILE *arch; //TODO arreglar con writeMemory
     int i=0; //direccion de memoria a guardar el byte
     char c, size[2], header[8];
 
@@ -92,49 +92,34 @@ void initVm(TVM *vm){
 }
 void readInstruction(TVM *vm){
     char instruction;
-    int maskOPC=0b00011111;  //mascara para obtener el codigo de operacion
+    int maskOPC=0b00011111;   //mascara para obtener el codigo de operacion
     int maskTOP1=0b00110000;  //mascara para obtener el primer operando
     int maskTOP2=0b11000000;  //mascara para obtener el segundo operando
     int TOP1,TOP2;
-    instruction= vm->mem[vm->reg[IP]];
-
+    
+    vm->reg[LAR] = vm->reg[IP]; //TODO preguntar, es correcto simular la lectura de instruccion
+    readMemory(vm);
+    instruction = vm->reg[MBR];
+    // decodifica la instruccion 
     TOP2= (instruction & maskTOP2) >> 6;
     TOP1= (instruction & maskTOP1) >> 4;
     vm->reg[OPC]= instruction & maskOPC;
+    vm->reg[IP]++; //se para en el primer byte del segundo operando
+    // lee los operandos
+    readOp(vm,OP2,TOP2);
+    readOp(vm,OP1,TOP1);
 
-    // vm->reg[OP2] = TOP2 << 24;
-    // if (TOP2==0b11) {//carga operando 2 (memoria)
-    //    //carga en el byte mas significativo con el tipo de operando
-    //    readOp(vm,TOP2,OP2);
-    // }
-    // else{ //lee operandos de code segment
-    //     vm->reg[OP2] = TOP2 << 24; //carga en el byte mas significativo con el tipo de operando
-    //     readOp(vm,TOP2,OP2);
-    // }
-
-    // vm->reg[OP1] = TOP1 << 24; //carga en el byte mas significativo con el tipo de operando
-    // if (TOP1==0b11) //carga operando 1
-    //     vm->reg[OP1] = readMemory(/*Completar*/); //da error por el tipo de la funcion
-    // else{
-    //     readOp(vm,TOP1,OP1);
-    // }
     //TODO puntero a funcion segun OPC
 }
-void readOp(TVM *vm,int TOP, int numOp){ //numOp es OP1 u OP2
+void readOp(TVM *vm,int TOP, int numOp){ //numOp es OP1 u OP2 y TOP tipo de operando
 
     vm->reg[numOp] = TOP << 24; //carga en el byte mas significativo con el tipo de operando
-    if (TOP == 0b11){ //memoria
-        vm->reg[numOp] = (vm->mem[vm->reg[IP]+1] << 16) | vm->mem[vm->reg[IP]+2] >> 8 | vm->mem[vm->reg[IP]+3]; //lee la direccion de memoria
-        vm->reg[IP]+=3; //incrementa el contador de instrucciones
-        
-    }
-    if (TOP == 0b01){ //registro
-        vm->reg[numOp] = vm->mem[vm->reg[IP]+1]; //lee el registro
-        vm->reg[IP]++; //incrementa el contador de instrucciones
-    }
-    else{ //inmediato
-        vm->reg[numOp] = (vm->mem[vm->reg[IP]+1] << 8) | vm->mem[vm->reg[IP]+2]; //lee el inmediato
-        vm->reg[IP]+=2; //incrementa el contador de instrucciones
+
+    for (int i=1;i<=TOP;i++){ //lee operando byte a byte
+        vm->reg[LAR] = vm->reg[IP];
+        readMemory(vm); 
+        vm->reg[numOp] |=  (vm->reg[MBR] << 8*(TOP - i)); //shiftea segun posicion del byte necesaria
+        vm->reg[IP]++;
     }
 }
 
