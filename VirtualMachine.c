@@ -21,11 +21,22 @@
 #define CS 26
 #define DS 27
 
-void readMemory(){
-
+int convertToPhysicalAddress(TVM *vm){
+    int segment, baseSeg, offSeg;
+    segment = vm->reg[LAR] & 0xFFFF0000;
+    baseSeg = vm->tableSeg[segment].base;
+    offSeg = vm->reg[LAR] & 0x0000FFFF;
+    return baseSeg + offSeg;
 }
 
-void writeMemory(){
+void readMemory(TVM *vm){
+    int physAddr = convertToPhysicalAddress(vm);
+    vm->reg[MAR] = physAddr;
+    vm->reg[MBR] = vm->mem[MAR];
+}
+
+void writeMemory(TVM *vm){
+    int physAddr = convertToPhysicalAddress(vm);
 
 }
 
