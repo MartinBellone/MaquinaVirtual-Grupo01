@@ -44,7 +44,7 @@ void readFile(TVM *vm, char name[]){     //funcion para leer el vmx
 
     arch=fopen(name,"rb");
     if (arch==NULL)
-        printf("ERROR al abrir el archivo");
+         printf("ERROR al abrir el archivo");
     else{
         // Lectura del identificador y version del archivo
         fread(header, 5*sizeof(char), 5, arch);
@@ -55,17 +55,30 @@ void readFile(TVM *vm, char name[]){     //funcion para leer el vmx
             // Inicializo tabla de segmentos
             initTSR(vm, size);
 
-
-            // Leer codigo
-            while (fread(&c,sizeof(char),1,arch)==1){   //TODO: revisar fread
-                vm->mem[i]=c;
-                i++;
+            if (vm->tableSeg[1].size <= 0){  //si se supera el tamaño del segmento de codigo, salir
+                 printf("Error: El programa es demasiado grande para la memoria asignada.\n");
+                }
+            else{
+                 // Leer codigo
+                while (fread(&c,sizeof(char),1,arch)==1){ 
+                    vm->mem[i]=c;
+                    i++;
+                }
+                initVm(vm);
+               
             }
-            initVm(vm,i);
         }
+        else
+          printf("Error: Formato de archivo incorrecto.\n");
+        fclose(arch);
     } 
+    //TODO cambiar los prints y revisar en general
 }
-
+void initVm(TVM *vm){
+    vm->reg[CS]=0;  //segmento de codigo
+    vm->reg[IP]= vm->reg[CS];  //contador de instrucciones apunta al inicio del segmento de codigo
+    vm->reg[DS]= 1 << 16;  //segmento de datos
+}
 void readInstruction(TVM *vm){
     char instruction;
     int maskOPC=0b00011111;  //mascara para obtener el codigo de operacion
@@ -77,4 +90,37 @@ void readInstruction(TVM *vm){
     TOP2= (instruction & maskTOP2)>>6;
     TOP1= (instruction & maskTOP1)>>4;
     vm->reg[OPC]= instruction & maskOPC;
+
+    if (TOP2==0b11) //carga operando 2
+        vm->reg[OP2] = readMemory(/*Completar*/);
+    else{ //lee operandos de code segment
+        vm->reg[OP2] = TOP2 << 24; //carga en el byte mas significativo con el tipo de operando
+        leeOp(vm,TOP2,OP2);
+    }
+    if (TOP1==0b11) //carga operando 1
+        vm->reg[OP1] = readMemory(/*Completar*/); //da error por el tipo de la funcion
+    else{
+        vm->reg[OP1] = TOP1 << 24; //carga en el byte mas significativo con el tipo de operando
+        leeOp(vm,TOP1,OP1);
+    }
+    //TODO puntero a funcion segun OPC
 }
+void readOp(TVM *vm,int TOP, int numOp){
+    if (TOP == 0b01){ //registro
+        vm->reg[numOp] = vm->mem[vm->reg[IP]+1]; //lee el registro
+        vm->reg[IP]++; //incrementa el contador de instrucciones
+    }
+    else{ //inmediato
+        vm->reg[numOp] = (vm->mem[vm->reg[IP]+1] << 8) | vm->mem[vm->reg[IP]+2]; //lee el inmediato
+        vm->reg[IP]+=2; //incrementa el contador de instrucciones
+    }
+}
+
+void MOV(TVM *vm){
+    int mask=0x0FFF;
+    int opAux;
+    opAux= vm->reg[OP1] & mask; //obtengo el operando sin el tipo
+    opAux = (opAux << 8) >> 8; //extiendo el signo
+    vm->reg[vm->reg[OP2] & mask] = opAux; //muevo el valor al registro destino
+}
+
