@@ -17,7 +17,7 @@ void initVm(TVM *vm); // Funcion para inicializar la maquina virtual
 void readIntruction(TVM * vm);
 void readOp(TVM *vm,int TOP, int numOp);
 
-void MOV(TVM *vm);
+void MOV(TVM *vm, int tipoOp1, int tipoOp2);
 void ADD(TVM *vm);
 void SUB(TVM *vm);
 void MUL(TVM *vm);

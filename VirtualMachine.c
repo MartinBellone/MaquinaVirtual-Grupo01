@@ -87,25 +87,36 @@ void readInstruction(TVM *vm){
     int TOP1,TOP2;
     instruction= vm->mem[vm->reg[IP]];
 
-    TOP2= (instruction & maskTOP2)>>6;
-    TOP1= (instruction & maskTOP1)>>4;
+    TOP2= (instruction & maskTOP2) >> 6;
+    TOP1= (instruction & maskTOP1) >> 4;
     vm->reg[OPC]= instruction & maskOPC;
 
-    if (TOP2==0b11) //carga operando 2
-        vm->reg[OP2] = readMemory(/*Completar*/);
-    else{ //lee operandos de code segment
-        vm->reg[OP2] = TOP2 << 24; //carga en el byte mas significativo con el tipo de operando
-        leeOp(vm,TOP2,OP2);
-    }
-    if (TOP1==0b11) //carga operando 1
-        vm->reg[OP1] = readMemory(/*Completar*/); //da error por el tipo de la funcion
-    else{
-        vm->reg[OP1] = TOP1 << 24; //carga en el byte mas significativo con el tipo de operando
-        leeOp(vm,TOP1,OP1);
-    }
+    // vm->reg[OP2] = TOP2 << 24;
+    // if (TOP2==0b11) {//carga operando 2 (memoria)
+    //    //carga en el byte mas significativo con el tipo de operando
+    //    readOp(vm,TOP2,OP2);
+    // }
+    // else{ //lee operandos de code segment
+    //     vm->reg[OP2] = TOP2 << 24; //carga en el byte mas significativo con el tipo de operando
+    //     readOp(vm,TOP2,OP2);
+    // }
+
+    // vm->reg[OP1] = TOP1 << 24; //carga en el byte mas significativo con el tipo de operando
+    // if (TOP1==0b11) //carga operando 1
+    //     vm->reg[OP1] = readMemory(/*Completar*/); //da error por el tipo de la funcion
+    // else{
+    //     readOp(vm,TOP1,OP1);
+    // }
     //TODO puntero a funcion segun OPC
 }
-void readOp(TVM *vm,int TOP, int numOp){
+void readOp(TVM *vm,int TOP, int numOp){ //numOp es OP1 u OP2
+
+    vm->reg[numOp] = TOP << 24; //carga en el byte mas significativo con el tipo de operando
+    if (TOP == 0b11){ //memoria
+        vm->reg[numOp] = (vm->mem[vm->reg[IP]+1] << 16) | vm->mem[vm->reg[IP]+2] >> 8 | vm->mem[vm->reg[IP]+3]; //lee la direccion de memoria
+        vm->reg[IP]+=3; //incrementa el contador de instrucciones
+        
+    }
     if (TOP == 0b01){ //registro
         vm->reg[numOp] = vm->mem[vm->reg[IP]+1]; //lee el registro
         vm->reg[IP]++; //incrementa el contador de instrucciones
@@ -116,11 +127,11 @@ void readOp(TVM *vm,int TOP, int numOp){
     }
 }
 
-void MOV(TVM *vm){
-    int mask=0x0FFF;
+void MOV(TVM *vm, int tipoOp1, int tipoOp2){
+    int mask=0x00FFFFFF;
     int opAux;
-    opAux= vm->reg[OP1] & mask; //obtengo el operando sin el tipo
+    opAux = vm->reg[OP2] & mask; //obtengo el operando sin el tipo
     opAux = (opAux << 8) >> 8; //extiendo el signo
-    vm->reg[vm->reg[OP2] & mask] = opAux; //muevo el valor al registro destino
+    vm->reg[vm->reg[OP1] & mask] = opAux; //muevo el valor al registro destino
 }
 
