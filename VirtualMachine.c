@@ -23,10 +23,16 @@
 
 int convertToPhysicalAddress(TVM *vm){
     int segment, baseSeg, offSeg;
-    segment = vm->reg[LAR] & 0xFFFF0000;
+    segment = (vm->reg[LAR] & 0xFFFF0000) >> 16; //obtengo el segmento
+
+    if (segment > 7){ //si el segmento es mayor a 7, error
+        printf("Error: Segmentation fault.\n");
+        exit(1);
+    }
+
     baseSeg = vm->tableSeg[segment].base;
     offSeg = vm->reg[LAR] & 0x0000FFFF;
-    return baseSeg + offSeg;
+    return 0x00000000 | (baseSeg + offSeg);
 }
 
 void readMemory(TVM *vm){
@@ -39,21 +45,26 @@ void writeMemory(TVM *vm){
     int physAddr = convertToPhysicalAddress(vm);
 
 }
-
+void createLogicAdress(TVM *vm){
+    // int segment, offset;
+    // segment = vm->reg[LAR] & 0xFFFF0000; //obtengo el segmento
+    // offset = vm->reg[LAR] & 0x0000FFFF; //obtengo el offset
+    // vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | offset; //cargo LAR con segmento de datos y offset del operando
+}
 void initTSR(TVM * vm, char *size){
     vm->tableSeg[0].base=0;
     strcpy(vm->tableSeg[0].size,size);
-    strcpy(vm->tableSeg[1].size,size);
+    strcpy(vm->tableSeg[1].base,size);
     int cantBytes = atoi(size);
     vm->tableSeg[1].size = 16384 - cantBytes;
 }
 
-void readFile(TVM *vm, char name[]){     //funcion para leer el vmx
+void readFile(TVM *vm,  char *fileName){     //funcion para leer el vmx
     FILE *arch; //TODO arreglar con writeMemory
     int i=0; //direccion de memoria a guardar el byte
     char c, size[2], header[8];
 
-    arch=fopen(name,"rb");
+    arch=fopen(fileName,"rb");
     if (arch==NULL)
          printf("ERROR al abrir el archivo");
     else{
@@ -108,8 +119,9 @@ void readInstruction(TVM *vm){
     // lee los operandos
     readOp(vm,OP2,TOP2);
     readOp(vm,OP1,TOP1);
-
+    
     //TODO puntero a funcion segun OPC
+
 }
 void readOp(TVM *vm,int TOP, int numOp){ //numOp es OP1 u OP2 y TOP tipo de operando
 
@@ -124,10 +136,47 @@ void readOp(TVM *vm,int TOP, int numOp){ //numOp es OP1 u OP2 y TOP tipo de oper
 }
 
 void MOV(TVM *vm, int tipoOp1, int tipoOp2){
-    int mask=0x00FFFFFF;
-    int opAux;
-    opAux = vm->reg[OP2] & mask; //obtengo el operando sin el tipo
-    opAux = (opAux << 8) >> 8; //extiendo el signo
-    vm->reg[vm->reg[OP1] & mask] = opAux; //muevo el valor al registro destino
+    // int mask=0x00FFFFFF;
+    // int opAux;
+    // opAux = vm->reg[OP2] & mask; //obtengo el operando sin el tipo
+    // opAux = (opAux << 8) >> 8; //extiendo el signo
+    // vm->reg[vm->reg[OP1] & mask] = opAux; //muevo el valor al registro destino
+    
+    if (tipoOp1 == 1){ //registro
+        if (tipoOp2 == 1){ //registro
+            //MOV EDX,EEX
+            //01010000 0E 0D
+            //OP1 = 0x0100000D OP2 = 0x0100000E
+            vm->reg[vm->reg[OP1] & 0x00FFFFFF] = vm->reg[vm->reg[OP2] & 0x00FFFFFF];
+        }
+        else if (tipoOp2 == 2){ //inmediato
+            //0x0200000A
+            //0x00000A00
+            //0x0000000A
+            // el shift a la derecha es aritmético, por lo que extiende el signo
+            vm->reg[vm->reg[OP1] & 0x00FFFFFF] = (vm->reg[OP2] << 8) >> 8; //extiendo el signo
+        }
+        else if (tipoOp2 == 3){ //memoria
+            //MOV EAX, [EDX+4]
+            //MOV EAX, [EDX]
+            //MOV EAX, [4] = MOV EAX, [DS+4]
+            // TODO preguntar como vienen los operandos de memoria
+            vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP2] & 0x0000FFFF); //cargo LAR con segmento de datos y offset del operando
+            readMemory(vm);
+            vm->reg[vm->reg[OP1] & 0x00FFFFFF] = vm->reg[MBR];
+        }
+    }
+    else if (tipoOp1 == 2){ //directo
+        if (tipoOp2 == 0){ //registro
+            vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP1] & 0x0000FFFF); //cargo LAR con segmento de datos y offset del operando
+            vm->reg[MBR] = vm->reg[vm->reg[OP2] & 0x00FFFFFF];
+            writeMemory(vm);
+        }
+        else if (tipoOp2 == 1){ //inmediato
+            vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP1] & 0x0000FFFF); //cargo LAR con segmento de datos y offset del operando
+            vm->reg[MBR] = (vm->reg[OP2] << 8) >> 8; //extiendo el signo
+            writeMemory(vm);
+        }
+    }
 }
 

@@ -10,11 +10,13 @@ typedef struct{
 
 } TVM; // Type virtual machine
 
-void readMemory(/*Completar*/);
-void writeMemory(/*Completar*/);
+
+int convertToPhysicalAddress(TVM *vm);
+void readMemory(TVM *vm);
+void writeMemory(TVM *vm);
 void readFile(TVM * vm, char *fileName); // Funcion para leer el archivo vmx
 void initVm(TVM *vm); // Funcion para inicializar la maquina virtual
-void readIntruction(TVM * vm);
+void readInstruction(TVM * vm);
 void readOp(TVM *vm,int TOP, int numOp);
 
 void MOV(TVM *vm, int tipoOp1, int tipoOp2);
