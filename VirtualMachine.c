@@ -101,6 +101,19 @@ void initVm(TVM *vm){
     vm->reg[IP]= vm->reg[CS];  //contador de instrucciones apunta al inicio del segmento de codigo
     vm->reg[DS]= 1 << 16;  //segmento de datos
 }
+
+void readOp(TVM *vm,int TOP, int numOp){ //numOp es OP1 u OP2 y TOP tipo de operando
+
+    vm->reg[numOp] = TOP << 24; //carga en el byte mas significativo con el tipo de operando
+
+    for (int i=1;i<=TOP;i++){ //lee operando byte a byte
+        vm->reg[LAR] = vm->reg[IP];
+        readMemory(vm); 
+        vm->reg[numOp] |=  (vm->reg[MBR] << 8*(TOP - i)); //shiftea segun posicion del byte necesaria
+        vm->reg[IP]++;
+    }
+}
+
 void readInstruction(TVM *vm){
     char instruction;
     int maskOPC=0b00011111;   //mascara para obtener el codigo de operacion
@@ -119,20 +132,9 @@ void readInstruction(TVM *vm){
     // lee los operandos
     readOp(vm,OP2,TOP2);
     readOp(vm,OP1,TOP1);
-    
-    //TODO puntero a funcion segun OPC
 
-}
-void readOp(TVM *vm,int TOP, int numOp){ //numOp es OP1 u OP2 y TOP tipo de operando
+    menu(vm, vm->reg[OPC], TOP1, TOP2);
 
-    vm->reg[numOp] = TOP << 24; //carga en el byte mas significativo con el tipo de operando
-
-    for (int i=1;i<=TOP;i++){ //lee operando byte a byte
-        vm->reg[LAR] = vm->reg[IP];
-        readMemory(vm); 
-        vm->reg[numOp] |=  (vm->reg[MBR] << 8*(TOP - i)); //shiftea segun posicion del byte necesaria
-        vm->reg[IP]++;
-    }
 }
 
 void MOV(TVM *vm, int tipoOp1, int tipoOp2){
@@ -178,5 +180,105 @@ void MOV(TVM *vm, int tipoOp1, int tipoOp2){
             writeMemory(vm);
         }
     }
+}
+
+void SYS(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void JMP(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void JZ(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void JP(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void JN(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void JNZ(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void JNP(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void JNN(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void NOT(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void STOP(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void CMP(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void SHL(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void SHR(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void SAR(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void AND(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void OR(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void XOR(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void SWAP(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void LDL(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void LDH(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void RND(TVM *vm, int tipoOp1, int tipoOp2){
+    //TODO
+}
+
+void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2){
+    printf("Error: Invalid Mnemonic Code");
+    exit(1);
+}
+
+void menu(TVM *vm, int opc, int tipoOp1, int tipoOp2){
+    void (*func[])(TVM *vm, int tipoOp1, int tipoOp2) = 
+    {
+        SYS,JMP,JZ,JP,JP,JN,JNZ,JNP,JNN,NOT, invalidOpCode, invalidOpCode,
+        invalidOpCode, invalidOpCode, invalidOpCode, invalidOpCode,
+        STOP,MOV,ADD,SUB,MUL,DIV,CMP,SHL,SHR,SAR,AND,OR,XOR,SWAP, LDL, LDH,
+        RND
+    };
+    return func[OPC](vm, tipoOp1, tipoOp2);
 }
 
