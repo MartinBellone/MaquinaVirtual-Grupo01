@@ -37,13 +37,25 @@ int convertToPhysicalAddress(TVM *vm){
 
 void readMemory(TVM *vm){
     int physAddr = convertToPhysicalAddress(vm);
-    vm->reg[MAR] = physAddr;
+    //tiene que venir el MAR seteado con la cantidad de bytes a leer
+    vm->reg[MAR] |= physAddr;
+    int bytesToRead = (vm->reg[MAR] & 0xFFFF0000) >> 16;
+    vm->reg[MBR] = 0; //inicializo MBR en 0
+    for (int i = 1; i <= bytesToRead; i++) {
+        vm->reg[MBR] |= (vm->mem[vm->reg[MAR] + i - 1] << (8 *(bytesToRead - i))); //leo byte a byte
+    }
     vm->reg[MBR] = vm->mem[vm->reg[MAR]];
 }
 
 void writeMemory(TVM *vm){
     int physAddr = convertToPhysicalAddress(vm);
-
+    //tiene que venir el MAR seteado con la cantidad de bytes a escribir y el MBR con los datos a escribir
+    vm->reg[MAR] |= physAddr;
+    int bytesToWrite = (vm->reg[MAR] & 0xFFFF0000) >> 16;
+    for (int i = 1; i <= bytesToWrite; i++) {
+        //0x0004000A 
+        vm->mem[vm->reg[MAR] + i - 1] = vm->reg[MBR] >> (8 *(bytesToWrite - i)) & 0xFF; //escribo byte a byte
+    }
 }
 void createLogicAdress(TVM *vm){
     // int segment, offset;
@@ -133,7 +145,7 @@ void readInstruction(TVM *vm){
     readOp(vm,OP2,TOP2);
     readOp(vm,OP1,TOP1);
 
-    menu(vm, vm->reg[OPC], TOP1, TOP2);
+    menu(vm, TOP1, TOP2);
 
 }
 
@@ -271,7 +283,7 @@ void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2){
     exit(1);
 }
 
-void menu(TVM *vm, int opc, int tipoOp1, int tipoOp2){
+void menu(TVM *vm, int tipoOp1, int tipoOp2){
     void (*func[])(TVM *vm, int tipoOp1, int tipoOp2) = 
     {
         SYS,JMP,JZ,JP,JP,JN,JNZ,JNP,JNN,NOT, invalidOpCode, invalidOpCode,
@@ -279,6 +291,6 @@ void menu(TVM *vm, int opc, int tipoOp1, int tipoOp2){
         STOP,MOV,ADD,SUB,MUL,DIV,CMP,SHL,SHR,SAR,AND,OR,XOR,SWAP, LDL, LDH,
         RND
     };
-    return func[OPC](vm, tipoOp1, tipoOp2);
+    func[vm->reg[OPC]](vm, tipoOp1, tipoOp2);
 }
 
