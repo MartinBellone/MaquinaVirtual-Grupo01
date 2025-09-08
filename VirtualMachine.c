@@ -212,43 +212,32 @@ void readFile(TVM *vm, char *fileName) {
             fclose(arch);
             exit(1);
         }
-        unsigned char sizeBytes[2];
-        if (fread(sizeBytes, 1, 2, arch) != 2) {
+        printf("Version de la maquina virtual archivo: %d\n", (int)version);
+        char sizeBytes[2];
+        if (fread(sizeBytes, sizeof(char), 2, arch) != 2) {
             fprintf(stderr, "ERROR: no se pudo leer tamaño de código\n");
             fclose(arch);
             exit(1);
         }
+
         codeSize = (sizeBytes[0] << 8) | sizeBytes[1];
 
+        printf("sizeBytes[0]: %d sizeBytes[1]: %d\n", sizeBytes[0], sizeBytes[1]);
         printf("Tamanio del segmento de codigo: %u bytes\n", codeSize);
 
         initTSR(vm, codeSize);
-        // if (strcmp(header, "VMX25") == 0) {
-        //     // Leo tamaño del archivo
 
-        //     fread(&version, sizeof(char), 1, arch);
+        if (vm->tableSeg[1].size <= 0) {  // si se supera el tamaño del segmento de codigo, salir
+            printf("Error: El programa es demasiado grande para la memoria asignada.\n");
+        } else {
+            // Leer codigo
+            while (fread(&c, sizeof(char), 1, arch) == 1) {
+                vm->mem[i] = c;
+                i++;
+            }
+            initVm(vm);
+        }
 
-        //     // Asegurarse de que la cadena esté terminada en null
-        //     printf("Version del archivo: %d\n", (int)version);
-
-        //     fread(&size, sizeof(unsigned short), 1, arch);
-        //     // size[1] = '\0';
-        //     // Inicializo tabla de segmentos
-        //     printf("Tamanio del segmento de codigo: %d bytes\n", *(unsigned short int *)size);
-
-        //     initTSR(vm, size);
-        //     if (vm->tableSeg[1].size <= 0) {  // si se supera el tamaño del segmento de codigo, salir
-        //         printf("Error: El programa es demasiado grande para la memoria asignada.\n");
-        //     } else {
-        //         // Leer codigo
-        //         while (fread(&c, sizeof(char), 1, arch) == 1) {
-        //             vm->mem[i] = c;
-        //             i++;
-        //         }
-        //         initVm(vm);
-        //     }
-        // } else
-        //     printf("Error: Formato de archivo incorrecto.\n");
         fclose(arch);
     }
     // TODO cambiar los prints y revisar en general
@@ -261,13 +250,16 @@ void initVm(TVM *vm) {
 
 void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
 
-    vm->reg[numOp] = TOP << 24;  // carga en el byte mas significativo con el tipo de operando
-
-    for (int i = 1; i <= TOP; i++) {  // lee operando byte a byte
-        vm->reg[LAR] = vm->reg[IP];
-        readMemory(vm);
-        vm->reg[numOp] |= (vm->reg[MBR] << 8 * (TOP - i));  // shiftea segun posicion del byte necesaria
-        vm->reg[IP]++;
+    if (TOP == 0b01) {                              // registro
+        vm->reg[numOp] = vm->mem[vm->reg[IP] + 1];  // lee el registro
+        vm->reg[IP]++;                              // incrementa el contador de instrucciones
+    } else {
+        if (TOP == 0b10) {
+            vm->reg[numOp] = (vm->mem[vm->reg[IP] + 1] << 8) | vm->mem[vm->reg[IP] + 2];  // lee el inmediato
+            vm->reg[IP] += 2;                                                             // incrementa el contador de instrucciones
+        } else {
+            // TODO parte de memoria
+        }
     }
 }
 
@@ -278,9 +270,7 @@ void readInstruction(TVM *vm) {
     int maskTOP2 = 0b11000000;  // mascara para obtener el segundo operando
     int TOP1, TOP2;
 
-    vm->reg[LAR] = vm->reg[IP];  // TODO preguntar, es correcto simular la lectura de instruccion
-    readMemory(vm);
-    instruction = vm->reg[MBR];
+    instruction = vm->mem[vm->reg[IP]];  // leo la instruccion
     // decodifica la instruccion
     TOP2 = (instruction & maskTOP2) >> 6;
     TOP1 = (instruction & maskTOP1) >> 4;
@@ -316,7 +306,9 @@ void MOV(TVM *vm, int tipoOp1, int tipoOp2) {
             // MOV EAX, [EDX+4]
             // MOV EAX, [EDX]
             // MOV EAX, [4] = MOV EAX, [DS+4]
-            //  TODO preguntar como vienen los operandos de memoria
+            //  TODO corregir
+            unsigned short int registro = (vm->reg[OP2] & 0x1F0000) >> 19;  // obtengo el registro
+
             vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP2] & 0x0000FFFF);  // cargo LAR con segmento de datos y offset del operando
             readMemory(vm);
             vm->reg[vm->reg[OP1] & 0x00FFFFFF] = vm->reg[MBR];
