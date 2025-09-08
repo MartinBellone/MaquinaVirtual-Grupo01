@@ -4,7 +4,7 @@ typedef struct {
 } TSR;
 
 typedef struct{
-    char *mem; // char mem[16]
+    char mem[16384]; // char mem[16]
     int reg[32]; // 4 Bytes por cada entero, son 32 registros de 4 bytes cada uno
     TSR tableSeg[8];
 
@@ -20,8 +20,4 @@ void readInstruction(TVM * vm);
 void readOp(TVM *vm,int TOP, int numOp);
 
 void MOV(TVM *vm, int tipoOp1, int tipoOp2);
-void ADD(TVM *vm);
-void SUB(TVM *vm);
-void MUL(TVM *vm);
-void DIV(TVM *vm);
 

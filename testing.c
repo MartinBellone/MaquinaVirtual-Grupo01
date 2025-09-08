@@ -9,9 +9,7 @@ int main( ) {
     //     fprintf(stderr, "Error allocating memory for virtual machine.\n");
     //     return 1;
     // }
-
-    // Initialize the virtual machine
-    initVm(&vm);
+      
 
     // Load a program into memory
     readFile(&vm, "sample.vmx");

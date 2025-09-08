@@ -1,12 +1,13 @@
 #include "VirtualMachine.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define LAR 0 
+#define LAR 0
 #define MAR 1
 #define MBR 2
-#define IP 3 //registro del contador de instrucciones
+#define IP 3  // registro del contador de instrucciones
 #define OPC 4
 #define OP1 5
 #define OP2 6
@@ -16,16 +17,129 @@
 #define EDX 13
 #define EEX 14
 #define EFP 15
-#define AC 16  
-#define CC 17              
+#define AC 16
+#define CC 17
 #define CS 26
 #define DS 27
 
-int convertToPhysicalAddress(TVM *vm){
-    int segment, baseSeg, offSeg;
-    segment = (vm->reg[LAR] & 0xFFFF0000) >> 16; //obtengo el segmento
+void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
 
-    if (segment > 7){ //si el segmento es mayor a 7, error
+void JMP(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void JZ(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void JP(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void JN(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void JNZ(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void JNP(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void JNN(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void NOT(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void STOP(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void CMP(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void SHL(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void SHR(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void SAR(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void AND(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void OR(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void XOR(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void SWAP(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void LDL(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void LDH(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void RND(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void ADD(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void SUB(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void MUL(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void DIV(TVM *vm, int tipoOp1, int tipoOp2) {
+    // TODO
+}
+
+void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
+    printf("Error: Invalid Mnemonic Code");
+    exit(1);
+}
+void menu(TVM *vm, int tipoOp1, int tipoOp2) {
+    void (*func[])(TVM *vm, int tipoOp1, int tipoOp2) = {
+        SYS, JMP, JZ, JP, JP, JN, JNZ, JNP, JNN, NOT, invalidOpCode, invalidOpCode,
+        invalidOpCode, invalidOpCode, invalidOpCode, invalidOpCode,
+        STOP, MOV, ADD, SUB, MUL, DIV, CMP, SHL, SHR, SAR, AND, OR, XOR, SWAP, LDL, LDH,
+        RND};
+    func[vm->reg[OPC]](vm, tipoOp1, tipoOp2);
+}
+
+int convertToPhysicalAddress(TVM *vm) {
+    int segment, baseSeg, offSeg;
+    segment = (vm->reg[LAR] & 0xFFFF0000) >> 16;  // obtengo el segmento
+
+    if (segment > 7) {  // si el segmento es mayor a 7, error
         printf("Error: Segmentation fault.\n");
         exit(1);
     }
@@ -35,262 +149,187 @@ int convertToPhysicalAddress(TVM *vm){
     return 0x00000000 | (baseSeg + offSeg);
 }
 
-void readMemory(TVM *vm){
+void readMemory(TVM *vm) {
     int physAddr = convertToPhysicalAddress(vm);
-    //tiene que venir el MAR seteado con la cantidad de bytes a leer
+    // tiene que venir el MAR seteado con la cantidad de bytes a leer
     vm->reg[MAR] |= physAddr;
     int bytesToRead = (vm->reg[MAR] & 0xFFFF0000) >> 16;
-    vm->reg[MBR] = 0; //inicializo MBR en 0
+    vm->reg[MBR] = 0;  // inicializo MBR en 0
     for (int i = 1; i <= bytesToRead; i++) {
-        vm->reg[MBR] |= (vm->mem[vm->reg[MAR] + i - 1] << (8 *(bytesToRead - i))); //leo byte a byte
+        vm->reg[MBR] |= (vm->mem[vm->reg[MAR] + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
     }
     vm->reg[MBR] = vm->mem[vm->reg[MAR]];
 }
 
-void writeMemory(TVM *vm){
+void writeMemory(TVM *vm) {
     int physAddr = convertToPhysicalAddress(vm);
-    //tiene que venir el MAR seteado con la cantidad de bytes a escribir y el MBR con los datos a escribir
+    // tiene que venir el MAR seteado con la cantidad de bytes a escribir y el MBR con los datos a escribir
     vm->reg[MAR] |= physAddr;
     int bytesToWrite = (vm->reg[MAR] & 0xFFFF0000) >> 16;
     for (int i = 1; i <= bytesToWrite; i++) {
-        //0x0004000A 
-        vm->mem[vm->reg[MAR] + i - 1] = vm->reg[MBR] >> (8 *(bytesToWrite - i)) & 0xFF; //escribo byte a byte
+        // 0x0004000A
+        vm->mem[vm->reg[MAR] + i - 1] = vm->reg[MBR] >> (8 * (bytesToWrite - i)) & 0xFF;  // escribo byte a byte
     }
 }
-void createLogicAdress(TVM *vm){
+void createLogicAdress(TVM *vm) {
     // int segment, offset;
     // segment = vm->reg[LAR] & 0xFFFF0000; //obtengo el segmento
     // offset = vm->reg[LAR] & 0x0000FFFF; //obtengo el offset
     // vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | offset; //cargo LAR con segmento de datos y offset del operando
 }
-void initTSR(TVM * vm, char *size){
-    vm->tableSeg[0].base=0;
-    strcpy(vm->tableSeg[0].size,size);
-    strcpy(vm->tableSeg[1].base,size);
-    int cantBytes = atoi(size);
-    vm->tableSeg[1].size = 16384 - cantBytes;
+void initTSR(TVM *vm, unsigned short int size) {
+    // vm->tableSeg[0].base=0;
+    // vm->tableSeg[0].size=size;
+    // vm->tableSeg[1].base=size;
+    // int cantBytes = size;
+    // vm->tableSeg[1].size = 16384 - cantBytes;
 }
 
-void readFile(TVM *vm,  char *fileName){     //funcion para leer el vmx
-    FILE *arch; //TODO arreglar con writeMemory
-    int i=0; //direccion de memoria a guardar el byte
-    char c, size[2], header[8];
+void readFile(TVM *vm, char *fileName) {
+    // funcion para leer el vmx
+    FILE *arch;  // TODO arreglar con writeMemory
+    int i = 0;   // direccion de memoria a guardar el byte
+    char c, header[6], version, sizeBytes[2];
+    unsigned short int codeSize;
 
-    arch=fopen(fileName,"rb");
-    if (arch==NULL)
-         printf("ERROR al abrir el archivo");
-    else{
+    arch = fopen(fileName, "rb");
+    if (arch == NULL)
+        printf("ERROR al abrir el archivo");
+    else {
         // Lectura del identificador y version del archivo
-        fread(header, 5*sizeof(char), 5, arch);
-        if(strcmp(header, "VMX251") == 0){
-            // Leo tamaño del archivo
-            fread(size, 2*sizeof(char), 2, arch);
+        fread(header, sizeof(char), 5, arch);
+        header[5] = '\0';  // Asegurarse de que la cadena esté terminada en null
+        printf("Identificador del archivo: %s\n", header);
 
-            // Inicializo tabla de segmentos
-            initTSR(vm, size);
-
-            if (vm->tableSeg[1].size <= 0){  //si se supera el tamaño del segmento de codigo, salir
-                 printf("Error: El programa es demasiado grande para la memoria asignada.\n");
-                }
-            else{
-                 // Leer codigo
-                while (fread(&c,sizeof(char),1,arch)==1){ 
-                    vm->mem[i]=c;
-                    i++;
-                }
-                initVm(vm);
-               
-            }
+        if (strcmp(header, "VMX25") != 0) {
+            fprintf(stderr, "ERROR: formato de archivo incorrecto (header %s)\n", header);
+            fclose(arch);
+            exit(1);
         }
-        else
-          printf("Error: Formato de archivo incorrecto.\n");
+        fread(&version, sizeof(char), 1, arch);
+        if (version != 1) {
+            fprintf(stderr, "ERROR: versión no soportada (%d)\n", version);
+            fclose(arch);
+            exit(1);
+        }
+        unsigned char sizeBytes[2];
+        if (fread(sizeBytes, 1, 2, arch) != 2) {
+            fprintf(stderr, "ERROR: no se pudo leer tamaño de código\n");
+            fclose(arch);
+            exit(1);
+        }
+        codeSize = (sizeBytes[0] << 8) | sizeBytes[1];
+
+        printf("Tamanio del segmento de codigo: %u bytes\n", codeSize);
+
+        initTSR(vm, codeSize);
+        // if (strcmp(header, "VMX25") == 0) {
+        //     // Leo tamaño del archivo
+
+        //     fread(&version, sizeof(char), 1, arch);
+
+        //     // Asegurarse de que la cadena esté terminada en null
+        //     printf("Version del archivo: %d\n", (int)version);
+
+        //     fread(&size, sizeof(unsigned short), 1, arch);
+        //     // size[1] = '\0';
+        //     // Inicializo tabla de segmentos
+        //     printf("Tamanio del segmento de codigo: %d bytes\n", *(unsigned short int *)size);
+
+        //     initTSR(vm, size);
+        //     if (vm->tableSeg[1].size <= 0) {  // si se supera el tamaño del segmento de codigo, salir
+        //         printf("Error: El programa es demasiado grande para la memoria asignada.\n");
+        //     } else {
+        //         // Leer codigo
+        //         while (fread(&c, sizeof(char), 1, arch) == 1) {
+        //             vm->mem[i] = c;
+        //             i++;
+        //         }
+        //         initVm(vm);
+        //     }
+        // } else
+        //     printf("Error: Formato de archivo incorrecto.\n");
         fclose(arch);
-    } 
-    //TODO cambiar los prints y revisar en general
+    }
+    // TODO cambiar los prints y revisar en general
 }
-void initVm(TVM *vm){
-    vm->reg[CS]=0;  //segmento de codigo
-    vm->reg[IP]= vm->reg[CS];  //contador de instrucciones apunta al inicio del segmento de codigo
-    vm->reg[DS]= 1 << 16;  //segmento de datos
+void initVm(TVM *vm) {
+    vm->reg[CS] = 0;            // segmento de codigo
+    vm->reg[IP] = vm->reg[CS];  // contador de instrucciones apunta al inicio del segmento de codigo
+    vm->reg[DS] = 1 << 16;      // segmento de datos
 }
 
-void readOp(TVM *vm,int TOP, int numOp){ //numOp es OP1 u OP2 y TOP tipo de operando
+void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
 
-    vm->reg[numOp] = TOP << 24; //carga en el byte mas significativo con el tipo de operando
+    vm->reg[numOp] = TOP << 24;  // carga en el byte mas significativo con el tipo de operando
 
-    for (int i=1;i<=TOP;i++){ //lee operando byte a byte
+    for (int i = 1; i <= TOP; i++) {  // lee operando byte a byte
         vm->reg[LAR] = vm->reg[IP];
-        readMemory(vm); 
-        vm->reg[numOp] |=  (vm->reg[MBR] << 8*(TOP - i)); //shiftea segun posicion del byte necesaria
+        readMemory(vm);
+        vm->reg[numOp] |= (vm->reg[MBR] << 8 * (TOP - i));  // shiftea segun posicion del byte necesaria
         vm->reg[IP]++;
     }
 }
 
-void readInstruction(TVM *vm){
+void readInstruction(TVM *vm) {
     char instruction;
-    int maskOPC=0b00011111;   //mascara para obtener el codigo de operacion
-    int maskTOP1=0b00110000;  //mascara para obtener el primer operando
-    int maskTOP2=0b11000000;  //mascara para obtener el segundo operando
-    int TOP1,TOP2;
-    
-    vm->reg[LAR] = vm->reg[IP]; //TODO preguntar, es correcto simular la lectura de instruccion
+    int maskOPC = 0b00011111;   // mascara para obtener el codigo de operacion
+    int maskTOP1 = 0b00110000;  // mascara para obtener el primer operando
+    int maskTOP2 = 0b11000000;  // mascara para obtener el segundo operando
+    int TOP1, TOP2;
+
+    vm->reg[LAR] = vm->reg[IP];  // TODO preguntar, es correcto simular la lectura de instruccion
     readMemory(vm);
     instruction = vm->reg[MBR];
-    // decodifica la instruccion 
-    TOP2= (instruction & maskTOP2) >> 6;
-    TOP1= (instruction & maskTOP1) >> 4;
-    vm->reg[OPC]= instruction & maskOPC;
-    vm->reg[IP]++; //se para en el primer byte del segundo operando
+    // decodifica la instruccion
+    TOP2 = (instruction & maskTOP2) >> 6;
+    TOP1 = (instruction & maskTOP1) >> 4;
+    vm->reg[OPC] = instruction & maskOPC;
+    vm->reg[IP]++;  // se para en el primer byte del segundo operando
     // lee los operandos
-    readOp(vm,OP2,TOP2);
-    readOp(vm,OP1,TOP1);
+    readOp(vm, OP2, TOP2);
+    readOp(vm, OP1, TOP1);
 
     menu(vm, TOP1, TOP2);
-
 }
 
-void MOV(TVM *vm, int tipoOp1, int tipoOp2){
+void MOV(TVM *vm, int tipoOp1, int tipoOp2) {
     // int mask=0x00FFFFFF;
     // int opAux;
     // opAux = vm->reg[OP2] & mask; //obtengo el operando sin el tipo
     // opAux = (opAux << 8) >> 8; //extiendo el signo
     // vm->reg[vm->reg[OP1] & mask] = opAux; //muevo el valor al registro destino
-    
-    if (tipoOp1 == 1){ //registro
-        if (tipoOp2 == 1){ //registro
-            //MOV EDX,EEX
-            //01010000 0E 0D
-            //OP1 = 0x0100000D OP2 = 0x0100000E
+
+    if (tipoOp1 == 1) {      // registro
+        if (tipoOp2 == 1) {  // registro
+            // MOV EDX,EEX
+            // 01010000 0E 0D
+            // OP1 = 0x0100000D OP2 = 0x0100000E
             vm->reg[vm->reg[OP1] & 0x00FFFFFF] = vm->reg[vm->reg[OP2] & 0x00FFFFFF];
-        }
-        else if (tipoOp2 == 2){ //inmediato
-            //0x0200000A
-            //0x00000A00
-            //0x0000000A
-            // el shift a la derecha es aritmético, por lo que extiende el signo
-            vm->reg[vm->reg[OP1] & 0x00FFFFFF] = (vm->reg[OP2] << 8) >> 8; //extiendo el signo
-        }
-        else if (tipoOp2 == 3){ //memoria
-            //MOV EAX, [EDX+4]
-            //MOV EAX, [EDX]
-            //MOV EAX, [4] = MOV EAX, [DS+4]
-            // TODO preguntar como vienen los operandos de memoria
-            vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP2] & 0x0000FFFF); //cargo LAR con segmento de datos y offset del operando
+        } else if (tipoOp2 == 2) {  // inmediato
+            // 0x0200000A
+            // 0x00000A00
+            // 0x0000000A
+            //  el shift a la derecha es aritmético, por lo que extiende el signo
+            vm->reg[vm->reg[OP1] & 0x00FFFFFF] = (vm->reg[OP2] << 8) >> 8;  // extiendo el signo
+        } else if (tipoOp2 == 3) {                                          // memoria
+            // MOV EAX, [EDX+4]
+            // MOV EAX, [EDX]
+            // MOV EAX, [4] = MOV EAX, [DS+4]
+            //  TODO preguntar como vienen los operandos de memoria
+            vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP2] & 0x0000FFFF);  // cargo LAR con segmento de datos y offset del operando
             readMemory(vm);
             vm->reg[vm->reg[OP1] & 0x00FFFFFF] = vm->reg[MBR];
         }
-    }
-    else if (tipoOp1 == 2){ //directo
-        if (tipoOp2 == 0){ //registro
-            vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP1] & 0x0000FFFF); //cargo LAR con segmento de datos y offset del operando
+    } else if (tipoOp1 == 2) {                                                        // directo
+        if (tipoOp2 == 0) {                                                           // registro
+            vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP1] & 0x0000FFFF);  // cargo LAR con segmento de datos y offset del operando
             vm->reg[MBR] = vm->reg[vm->reg[OP2] & 0x00FFFFFF];
             writeMemory(vm);
-        }
-        else if (tipoOp2 == 1){ //inmediato
-            vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP1] & 0x0000FFFF); //cargo LAR con segmento de datos y offset del operando
-            vm->reg[MBR] = (vm->reg[OP2] << 8) >> 8; //extiendo el signo
+        } else if (tipoOp2 == 1) {                                                    // inmediato
+            vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP1] & 0x0000FFFF);  // cargo LAR con segmento de datos y offset del operando
+            vm->reg[MBR] = (vm->reg[OP2] << 8) >> 8;                                  // extiendo el signo
             writeMemory(vm);
         }
     }
 }
-
-void SYS(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void JMP(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void JZ(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void JP(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void JN(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void JNZ(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void JNP(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void JNN(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void NOT(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void STOP(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void CMP(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void SHL(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void SHR(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void SAR(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void AND(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void OR(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void XOR(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void SWAP(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void LDL(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void LDH(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void RND(TVM *vm, int tipoOp1, int tipoOp2){
-    //TODO
-}
-
-void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2){
-    printf("Error: Invalid Mnemonic Code");
-    exit(1);
-}
-
-void menu(TVM *vm, int tipoOp1, int tipoOp2){
-    void (*func[])(TVM *vm, int tipoOp1, int tipoOp2) = 
-    {
-        SYS,JMP,JZ,JP,JP,JN,JNZ,JNP,JNN,NOT, invalidOpCode, invalidOpCode,
-        invalidOpCode, invalidOpCode, invalidOpCode, invalidOpCode,
-        STOP,MOV,ADD,SUB,MUL,DIV,CMP,SHL,SHR,SAR,AND,OR,XOR,SWAP, LDL, LDH,
-        RND
-    };
-    func[vm->reg[OPC]](vm, tipoOp1, tipoOp2);
-}
-
