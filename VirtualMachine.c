@@ -39,10 +39,10 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
     if(vm->reg[EAX] < 0 || vm->reg[EAX] > 10 || vm->reg[EAX] % 2 != 0)
         exit(1);
 
-    for(int i = 0; i < cantLecturas; i++){
-        vm->reg[LAR] = vm->reg[EDX]; // Cargo LAR con la direcicon logica
-        vm->reg[MAR] = tamanioCelda << 16; // Cargo MAR con la cantidad de bytes a leer
+    vm->reg[LAR] = vm->reg[EDX]; // Cargo LAR con la direcicon logica
+    vm->reg[MAR] = tamanioCelda << 16; // Cargo MAR con la cantidad de bytes a leer
 
+    for(int i = 0; i < cantLecturas; i++)
         if(call == 1){
             printf("[%08x]: ", vm->reg[EDX]);
             if(vm->reg[EAX] == 0){
@@ -94,7 +94,6 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
                         else
                             // No es una base valida
                             exit(1);
-    }
 }
 
 void JMP(TVM *vm, int tipoOp1, int tipoOp2) {
