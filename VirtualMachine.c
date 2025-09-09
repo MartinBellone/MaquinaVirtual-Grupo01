@@ -25,6 +25,13 @@
 #define CC_N 0x80000000
 #define CC_Z 0x40000000
 
+void setCC(TVM *vm,int value){
+    if (value<0)
+        vm->reg[CC] = CC_N;
+    else if (value == 0)
+        vm->reg[CC] = CC_Z;
+}
+
 void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
     int call = vm->reg[OP1];
     int tamanioCelda = (vm->reg[ECX] & 0xFFFF0000) >> 16;
@@ -95,63 +102,130 @@ void JMP(TVM *vm, int tipoOp1, int tipoOp2) {
 }
 
 void JZ(TVM *vm, int tipoOp1, int tipoOp2) {
-    
+    if (vm->reg[CC] == CC_Z) {
+        vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    }
 }
 
 void JP(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    if (vm->reg[CC] != CC_N && vm->reg[CC] != CC_Z) {
+        vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    }
 }
 
 void JN(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    if (vm->reg[CC] == CC_N) {
+        vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    }
 }
 
 void JNZ(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    if (vm->reg[CC] != CC_Z) {
+        vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    }
 }
 
 void JNP(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    if (vm->reg[CC] == CC_N || vm->reg[CC] == CC_Z) {
+        vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    }
 }
 
 void JNN(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    if (vm->reg[CC] != CC_N) {
+        vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    }
 }
 
 void NOT(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value = getOp(vm, vm->reg[OP1]);
+    value = ~value;
+    setOp(vm, vm->reg[OP1], value);
+    setCC(vm, value);
 }
 
 void STOP(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    exit(0);
 }
 
 void CMP(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1, value2, result;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
+    result = value1 - value2;
+    setCC(vm, result);
 }
 
 void SHL(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1,value2;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    value1 = value1 << value2;
+    setCC(vm,value1);
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void SHR(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1, value2, mascara = 0xFFFFFFFF;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    value1 &= ~(mascara << (32 - value2)); 
+    /*
+    
+        Ej:
+    
+        value1 = 1111;
+        value2 = 1;
+
+        value1 >> value2
+        En C quedaria 1111 (Mantiene signo) tendria que ser 0111
+        
+        Entonces nuestra mascara que es 1111 hago
+        1111 << (4 - 1) = 1000
+        ~1000 = 0111
+
+        Value1 quedaria:
+        1111 & 0111 = 0111
+
+    */
+    setCC(vm,value1);
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void SAR(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1,value2;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    value1 = value1 >> value2;
+    setCC(vm,value1);
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void AND(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1,value2;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    value1 = value1 & value2;
+    setCC(vm,value1);
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void OR(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1,value2;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    value1 = value1 | value2;
+    setCC(vm,value1);
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void XOR(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1,value2;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    value1 = value1 ^ value2;
+    setCC(vm,value1);
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void SWAP(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -185,12 +259,6 @@ void RND(TVM *vm, int tipoOp1, int tipoOp2) {
     //TODO terminar
 }
 
-void setCC(TVM *vm,int value){
-    if (value<0)
-        vm->reg[CC] = CC_N;
-    else if (value == 0)
-        vm->reg[CC] = CC_Z;
-}
 void ADD(TVM *vm, int tipoOp1, int tipoOp2) {
     int value1,value2;
     value1 = getOp(vm,vm->reg[OP1]);
@@ -428,8 +496,8 @@ void readInstruction(TVM *vm) {
     vm->reg[OPC] = instruction & maskOPC;
     vm->reg[IP]++;  // se para en el primer byte del segundo operando
     // lee los operandos
-    readOp(vm, OP2, TOP2);
-    readOp(vm, OP1, TOP1);
+    readOp(vm, TOP2, OP2);
+    readOp(vm, TOP1, OP1);
 
     menu(vm, TOP1, TOP2);
 }
