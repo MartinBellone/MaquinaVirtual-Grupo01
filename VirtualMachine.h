@@ -17,4 +17,7 @@ void initVm(TVM *vm);                    // Funcion para inicializar la maquina 
 void readInstruction(TVM *vm);
 void readOp(TVM *vm, int TOP, int numOp);
 
+int getOp(TVM *vm, int registerValue);
+void setOp(TVM *vm, int registerValue, int value);
+
 void MOV(TVM *vm, int tipoOp1, int tipoOp2);
