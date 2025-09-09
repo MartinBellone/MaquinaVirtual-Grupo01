@@ -91,7 +91,9 @@ void XOR(TVM *vm, int tipoOp1, int tipoOp2) {
 }
 
 void SWAP(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int aux = getOp(vm, OP2);
+    setOp(vm, OP2, OP1);
+    setOp(vm, OP1, aux);
 }
 
 void LDL(TVM *vm, int tipoOp1, int tipoOp2) {
