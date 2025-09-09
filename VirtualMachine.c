@@ -11,14 +11,14 @@
 #define OPC 4
 #define OP1 5
 #define OP2 6
-#define EAX 10
-#define EBX 11
-#define ECX 12
-#define EDX 13
-#define EEX 14
-#define EFP 15
-#define AC 16
-#define CC 17
+#define EAX 10  // A
+#define EBX 11  // B
+#define ECX 12  // C
+#define EDX 13  // D
+#define EEX 14  // E
+#define EFP 15  // F
+#define AC 16   // 1F
+#define CC 17   // 2F
 #define CS 26
 #define DS 27
 
@@ -155,7 +155,9 @@ void XOR(TVM *vm, int tipoOp1, int tipoOp2) {
 }
 
 void SWAP(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int aux = getOp(vm, OP2);
+    setOp(vm, OP2, OP1);
+    setOp(vm, OP1, aux);
 }
 
 void LDL(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -244,6 +246,43 @@ void menu(TVM *vm, int tipoOp1, int tipoOp2) {
         STOP, MOV, ADD, SUB, MUL, DIV, CMP, SHL, SHR, SAR, AND, OR, XOR, SWAP, LDL, LDH,
         RND};
     func[vm->reg[OPC]](vm, tipoOp1, tipoOp2);
+}
+
+int getOp(TVM *vm, int registerValue) {
+    int type = (registerValue & 0xFF000000) >> 24;  // obtengo el tipo de operando
+    int opAux = registerValue & 0x00FFFFFF;         // obtengo el operando sin el tipo
+
+    if (type == 0b01) {  // registro
+        return vm->reg[opAux];
+    } else if (type == 0b10) {                      // inmediato
+        return (opAux << 8) >> 8;                   // extiendo el signo
+    } else if (type == 0b11) {                      // memoria
+        int registro = (opAux & 0x1F0000) >> 19;    // obtengo el registro
+        int offset = opAux & 0x0000FFFF;            // obtengo el offset
+        vm->reg[LAR] = vm->reg[registro] + offset;  // cargo LAR con segmento de datos y offset del operando
+        vm->reg[MAR] = 0x00040000;                  // seteamos MAR para leer 4 bytes
+        readMemory(vm);
+        return vm->reg[MBR];
+    }
+}
+void setOp(TVM *vm, int registerValue, int value) {
+    int mask = 0x00FFFFFF;
+    int type = (registerValue & 0xFF000000) >> 24;  // obtengo el tipo de operando
+    int opAux = registerValue & mask;               // obtengo el operando sin el tipo
+    if (type == 0b01) {                             // registro
+        vm->reg[opAux] = value;
+    } else if (type == 0b10) {  // inmediato
+        printf("Error: No se puede escribir en un inmediato.\n");
+        exit(1);
+    } else if (type == 0b11) {                    // memoria
+        int registro = (opAux & 0x1F0000) >> 19;  // obtengo el registro
+        int offset = opAux & 0x0000FFFF;          // obtengo el offset
+        // cargo LAR con el contenido del registro (debera ser un puntero) y offset del operando
+        vm->reg[LAR] = vm->reg[registro] + offset;
+        vm->reg[MBR] = value;
+        vm->reg[MAR] = 0x00040000;
+        writeMemory(vm);
+    }
 }
 
 int convertToPhysicalAddress(TVM *vm) {
