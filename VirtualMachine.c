@@ -22,6 +22,9 @@
 #define CS 26
 #define DS 27
 
+#define CC_N 0x80000000
+#define CC_Z 0x40000000
+
 void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
     // TODO
 }
@@ -95,74 +98,78 @@ void SWAP(TVM *vm, int tipoOp1, int tipoOp2) {
 }
 
 void LDL(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1,value2,aux,mask = 0xFFFF0000;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    value1 &= mask; 
+    value1 |= value2;
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void LDH(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1,value2,aux,mask = 0x0000FFFF;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    value1 &= mask; 
+    value1 |= value2 << 16;
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void RND(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1,value2;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    //TODO terminar
 }
 
+void setCC(TVM *vm,int value){
+    if (value<0)
+        vm->reg[CC] = CC_N;
+    else if (value == 0)
+        vm->reg[CC] = CC_Z;
+}
 void ADD(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1,value2;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    value1 += value2;
+    setCC(vm,value1);
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void SUB(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1,value2;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    value1 -= value2;
+    setCC(vm,value1);
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void MUL(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1,value2;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    value1 *= value2;
+    setCC(vm,value1);
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void DIV(TVM *vm, int tipoOp1, int tipoOp2) {
-    // TODO
+    int value1,value2;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    vm->reg[AC] = value1 % value2;
+    value1 /= value2; //hace division entera porque ambos son enteros
+    setCC(vm,value1);
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void MOV(TVM *vm, int tipoOp1, int tipoOp2) {
-    // int mask=0x00FFFFFF;
-    // int opAux;
-    // opAux = vm->reg[OP2] & mask; //obtengo el operando sin el tipo
-    // opAux = (opAux << 8) >> 8; //extiendo el signo
-    // vm->reg[vm->reg[OP1] & mask] = opAux; //muevo el valor al registro destino
-
-    if (tipoOp1 == 1) {      // registro
-        if (tipoOp2 == 1) {  // registro
-            // MOV EDX,EEX
-            // 01010000 0E 0D
-            // OP1 = 0x0100000D OP2 = 0x0100000E
-            vm->reg[vm->reg[OP1] & 0x00FFFFFF] = vm->reg[vm->reg[OP2] & 0x00FFFFFF];
-        } else if (tipoOp2 == 2) {  // inmediato
-            // 0x0200000A
-            // 0x00000A00
-            // 0x0000000A
-            //  el shift a la derecha es aritmético, por lo que extiende el signo
-            vm->reg[vm->reg[OP1] & 0x00FFFFFF] = (vm->reg[OP2] << 8) >> 8;  // extiendo el signo
-        } else if (tipoOp2 == 3) {                                          // memoria
-            // MOV EAX, [EDX+4]
-            // MOV EAX, [EDX]
-            // MOV EAX, [4] = MOV EAX, [DS+4]
-            //  TODO corregir
-            unsigned short int registro = (vm->reg[OP2] & 0x1F0000) >> 19;  // obtengo el registro
-
-            vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP2] & 0x0000FFFF);  // cargo LAR con segmento de datos y offset del operando
-            readMemory(vm);
-            vm->reg[vm->reg[OP1] & 0x00FFFFFF] = vm->reg[MBR];
-        }
-    } else if (tipoOp1 == 2) {                                                        // directo
-        if (tipoOp2 == 0) {                                                           // registro
-            vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP1] & 0x0000FFFF);  // cargo LAR con segmento de datos y offset del operando
-            vm->reg[MBR] = vm->reg[vm->reg[OP2] & 0x00FFFFFF];
-            writeMemory(vm);
-        } else if (tipoOp2 == 1) {                                                    // inmediato
-            vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | (vm->reg[OP1] & 0x0000FFFF);  // cargo LAR con segmento de datos y offset del operando
-            vm->reg[MBR] = (vm->reg[OP2] << 8) >> 8;                                  // extiendo el signo
-            writeMemory(vm);
-        }
-    }
+    int value1,value2;
+    value1 = getOp(vm,vm->reg[OP1]);
+    value2 = getOp(vm,vm->reg[OP2]);
+    setOp(vm,value1,value2);
 }
 
 void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
