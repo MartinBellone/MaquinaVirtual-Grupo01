@@ -512,8 +512,6 @@ void readInstruction(TVM *vm) {
     // lee los operandos
     readOp(vm, TOP2, OP2);
     readOp(vm, TOP1, OP1);
-
-    printf("IP: %04x OPC: %02x TOP1: %02x TOP2: %02x OP1: %08x OP2: %08x\n", vm->reg[IP], vm->reg[OPC], TOP1, TOP2, vm->reg[OP1], vm->reg[OP2]);
     menu(vm, TOP1, TOP2);
 }
 
