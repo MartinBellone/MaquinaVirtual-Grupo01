@@ -223,10 +223,15 @@ int convertToPhysicalAddress(TVM *vm) {
         printf("Error: Segmentation fault.\n");
         exit(1);
     }
-
+    printf("Segment: %d\n", segment);
     baseSeg = vm->tableSeg[segment].base;
     offSeg = vm->reg[LAR] & 0x0000FFFF;
+    printf("Base: 0x%X Offset: 0x%X\n", baseSeg, offSeg);
     return 0x00000000 | (baseSeg + offSeg);
+}
+int signExtend(unsigned int value, int nbytes) {
+    int shift = (4 - nbytes) * 8;           // cuántos bits correr
+    return (int)(value << shift) >> shift;  // extiende signo al castear
 }
 
 void readMemory(TVM *vm) {
@@ -234,21 +239,31 @@ void readMemory(TVM *vm) {
     // tiene que venir el MAR seteado con la cantidad de bytes a leer
     vm->reg[MAR] |= physAddr;
     int bytesToRead = (vm->reg[MAR] & 0xFFFF0000) >> 16;
-    vm->reg[MBR] = 0;  // inicializo MBR en 0
+    int address = (vm->reg[MAR] & 0x0000FFFF);
+    vm->reg[MBR] = 0x00000000;  // inicializo MBR en 0
+    int acc = 0;
     for (int i = 1; i <= bytesToRead; i++) {
-        vm->reg[MBR] |= (vm->mem[vm->reg[MAR] + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
+        unsigned char b = vm->mem[address + i];
+        acc = (acc << 8) | b;  // MSB primero
+        // debug opcional:
+        // printf("Reading @0x%X = 0x%X\n", address + i, b);
     }
-    vm->reg[MBR] = vm->mem[vm->reg[MAR]];
+    // vm->reg[MBR] = vm->mem[address];
+    // debo tener en cuenta el signo
+    vm->reg[MBR] = signExtend(acc, bytesToRead);
 }
 
 void writeMemory(TVM *vm) {
     int physAddr = convertToPhysicalAddress(vm);
     // tiene que venir el MAR seteado con la cantidad de bytes a escribir y el MBR con los datos a escribir
     vm->reg[MAR] |= physAddr;
+    printf("Physical Address to write: 0x%X\n", vm->reg[MAR]);
     int bytesToWrite = (vm->reg[MAR] & 0xFFFF0000) >> 16;
-    for (int i = 1; i <= bytesToWrite; i++) {
+    int address = (vm->reg[MAR] & 0x0000FFFF);
+    for (int i = 0; i < bytesToWrite; i++) {
         // 0x0004000A
-        vm->mem[vm->reg[MAR] + i - 1] = vm->reg[MBR] >> (8 * (bytesToWrite - i)) & 0xFF;  // escribo byte a byte
+        printf("Writing to memory address 0x%X: 0x%X\n", vm->reg[MAR] + i, vm->reg[MBR] >> (8 * (bytesToWrite - i - 1)) & 0xFF);
+        vm->mem[address + i] = vm->reg[MBR] >> (8 * (bytesToWrite - i - 1)) & 0xFF;  // escribo byte a byte
     }
 }
 void createLogicAdress(TVM *vm) {
@@ -258,11 +273,11 @@ void createLogicAdress(TVM *vm) {
     // vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | offset; //cargo LAR con segmento de datos y offset del operando
 }
 void initTSR(TVM *vm, unsigned short int size) {
-    // vm->tableSeg[0].base=0;
-    // vm->tableSeg[0].size=size;
-    // vm->tableSeg[1].base=size;
-    // int cantBytes = size;
-    // vm->tableSeg[1].size = 16384 - cantBytes;
+    vm->tableSeg[0].base = 0;
+    vm->tableSeg[0].size = size;
+    vm->tableSeg[1].base = size;
+    int cantBytes = size;
+    vm->tableSeg[1].size = 16384 - cantBytes;
 }
 
 void readFile(TVM *vm, char *fileName) {
