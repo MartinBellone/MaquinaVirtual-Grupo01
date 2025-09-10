@@ -300,7 +300,6 @@ void MOV(TVM *vm, int tipoOp1, int tipoOp2) {
     value1 = getOp(vm,vm->reg[OP1]);
     value2 = getOp(vm,vm->reg[OP2]);
     setOp(vm,value1,value2);
-    printf("Value1: %d, Value2: %d\n", value1, value2);
 }
 
 void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -310,7 +309,7 @@ void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
 void menu(TVM *vm, int tipoOp1, int tipoOp2) {
     void (*func[])(TVM *vm, int tipoOp1, int tipoOp2) = {
         SYS, JMP, JZ, JP, JP, JN, JNZ, JNP, JNN, NOT, invalidOpCode, invalidOpCode,
-        invalidOpCode, invalidOpCode, invalidOpCode, invalidOpCode,
+        invalidOpCode, invalidOpCode, invalidOpCode,
         STOP, MOV, ADD, SUB, MUL, DIV, CMP, SHL, SHR, SAR, AND, OR, XOR, SWAP, LDL, LDH,
         RND};
     func[vm->reg[OPC]](vm, tipoOp1, tipoOp2);
@@ -474,15 +473,25 @@ void initVm(TVM *vm) {
 
 void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
 
-    if (TOP == 0b01) {                              // registro
-        vm->reg[numOp] = vm->mem[vm->reg[IP]];  // lee el registro
+    if (TOP == 0b01) { 
+        vm->reg[numOp] = 0x01 << 24;                 // registro
+        vm->reg[numOp] |= vm->mem[vm->reg[IP]];     // lee el registro
         vm->reg[IP]++;                              // incrementa el contador de instrucciones
     } else {
         if (TOP == 0b10) {
-            vm->reg[numOp] = (vm->mem[vm->reg[IP] + 1] << 8) | vm->mem[vm->reg[IP] + 2];  // lee el inmediato
+            vm->reg[numOp] = 0x02 << 24;                // inmediato
+            vm->reg[numOp] |= (vm->mem[vm->reg[IP]] << 8) | vm->mem[vm->reg[IP] + 1];      // lee el inmediato
             vm->reg[IP] += 2;                                                             // incrementa el contador de instrucciones
         } else {
-            // TODO parte de memoria
+            if(TOP == 0b11){ // memoria
+                vm->reg[numOp] = 0x03 << 24; // memoria
+                vm->reg[numOp] |= (vm->mem[vm->reg[IP]] << 16) | (vm->mem[vm->reg[IP] + 1] << 8) | vm->mem[vm->reg[IP] + 2]; // lee el operando de memoria
+                vm->reg[IP] += 3; // incrementa el contador de instrucciones
+            }
+            else{
+                printf("Error: Tipo de operando invalido.\n");
+                exit(1);
+            }
         }
     }
 }
