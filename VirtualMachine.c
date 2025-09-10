@@ -300,6 +300,7 @@ void MOV(TVM *vm, int tipoOp1, int tipoOp2) {
     value1 = getOp(vm,vm->reg[OP1]);
     value2 = getOp(vm,vm->reg[OP2]);
     setOp(vm,value1,value2);
+    printf("Value1: %d, Value2: %d\n", value1, value2);
 }
 
 void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -395,11 +396,10 @@ void createLogicAdress(TVM *vm) {
     // vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | offset; //cargo LAR con segmento de datos y offset del operando
 }
 void initTSR(TVM *vm, unsigned short int size) {
-    // vm->tableSeg[0].base=0;
-    // vm->tableSeg[0].size=size;
-    // vm->tableSeg[1].base=size;
-    // int cantBytes = size;
-    // vm->tableSeg[1].size = 16384 - cantBytes;
+    vm->tableSeg[0].base=0;
+    vm->tableSeg[0].size=size;
+    vm->tableSeg[1].base=size;
+    vm->tableSeg[1].size = 16384 - size;
 }
 
 void readFile(TVM *vm, char *fileName) {
@@ -460,6 +460,12 @@ void readFile(TVM *vm, char *fileName) {
     // TODO cambiar los prints y revisar en general
 }
 
+void showCodeSegment(TVM *vm){
+    for(int i = 0; i < vm->tableSeg[0].size; i++){
+        printf("[%04x]: %02x\n", i, vm->mem[i]);
+    }
+}
+
 void initVm(TVM *vm) {
     vm->reg[CS] = 0;            // segmento de codigo
     vm->reg[IP] = vm->reg[CS];  // contador de instrucciones apunta al inicio del segmento de codigo
@@ -469,7 +475,7 @@ void initVm(TVM *vm) {
 void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
 
     if (TOP == 0b01) {                              // registro
-        vm->reg[numOp] = vm->mem[vm->reg[IP] + 1];  // lee el registro
+        vm->reg[numOp] = vm->mem[vm->reg[IP]];  // lee el registro
         vm->reg[IP]++;                              // incrementa el contador de instrucciones
     } else {
         if (TOP == 0b10) {
@@ -498,5 +504,13 @@ void readInstruction(TVM *vm) {
     readOp(vm, TOP2, OP2);
     readOp(vm, TOP1, OP1);
 
+    printf("IP: %04x OPC: %02x TOP1: %02x TOP2: %02x OP1: %08x OP2: %08x\n", vm->reg[IP], vm->reg[OPC], TOP1, TOP2, vm->reg[OP1], vm->reg[OP2]);
     menu(vm, TOP1, TOP2);
+}
+
+
+void executeProgram(TVM *vm) {
+    while (1) {
+        readInstruction(vm);
+    }
 }

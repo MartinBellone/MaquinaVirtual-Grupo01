@@ -16,6 +16,8 @@ void readFile(TVM *vm, char *fileName);  // Funcion para leer el archivo vmx
 void initVm(TVM *vm);                    // Funcion para inicializar la maquina virtual
 void readInstruction(TVM *vm);
 void readOp(TVM *vm, int TOP, int numOp);
+void showCodeSegment(TVM *vm);
+void executeProgram(TVM *vm);
 
 int getOp(TVM *vm, int registerValue);
 void setOp(TVM *vm, int registerValue, int value);
