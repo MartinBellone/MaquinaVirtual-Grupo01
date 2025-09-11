@@ -25,8 +25,8 @@
 #define CC_N 0x80000000
 #define CC_Z 0x40000000
 
-void setCC(TVM *vm,int value){
-    if (value<0)
+void setCC(TVM *vm, int value) {
+    if (value < 0)
         vm->reg[CC] = CC_N;
     else if (value == 0)
         vm->reg[CC] = CC_Z;
@@ -36,64 +36,52 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
     int call = vm->reg[OP1];
     int tamanioCelda = (vm->reg[ECX] & 0xFFFF0000) >> 16;
     int cantLecturas = vm->reg[ECX] & 0x0000FFFF;
-    if(vm->reg[EAX] < 0 || vm->reg[EAX] > 10 || vm->reg[EAX] % 2 != 0)
+    if (vm->reg[EAX] < 0 || vm->reg[EAX] > 10 || vm->reg[EAX] % 2 != 0)
         exit(1);
 
-    vm->reg[LAR] = vm->reg[EDX]; // Cargo LAR con la direcicon logica
-    vm->reg[MAR] = tamanioCelda << 16; // Cargo MAR con la cantidad de bytes a leer
+    vm->reg[LAR] = vm->reg[EDX];        // Cargo LAR con la direcicon logica
+    vm->reg[MAR] = tamanioCelda << 16;  // Cargo MAR con la cantidad de bytes a leer
 
-    for(int i = 0; i < cantLecturas; i++)
-        if(call == 1){
+    for (int i = 0; i < cantLecturas; i++)
+        if (call == 1) {
             printf("[%08x]: ", vm->reg[EDX]);
-            if(vm->reg[EAX] == 0){
+            if (vm->reg[EAX] == 0) {
                 char valor;
                 scanf(" %c", &valor);
                 vm->reg[MBR] = valor;
                 writeMemory(vm);
-            } 
-            else 
-                if(vm->reg[EAX] == 1){
-                    char valor;
-                    scanf(" %c", &valor);
-                    vm->reg[MBR] = valor;
-                    writeMemory(vm);
-                }
-                else
-                    if(vm->reg[EAX] == 2 | vm->reg[EAX] == 4 | vm->reg[EAX] == 8){
-                        unsigned short int valor;
-                        scanf("%hu", &valor);
-                        vm->reg[MBR] = valor;
-                        writeMemory(vm);
-                    }
-                    else
-                        // No es una base valida
-                        exit(1);
-        }
-        else 
-            if(call == 2)
-                if(vm->reg[EAX] == 0){
-                    int valor;
-                    readMemory(vm);
-                    valor = vm->reg[MBR];
-                    printf("%d", valor);
-                }  
-                else 
-                    if(vm->reg[EAX] == 1){
-                        char valor;
-                        readMemory(vm);
-                        valor = vm->reg[MBR];
-                        printf("%c", valor);
-                    }
-                    else
-                        if(vm->reg[EAX] == 2 | vm->reg[EAX] == 4 | vm->reg[EAX] == 8){
-                            unsigned short int valor;
-                            readMemory(vm);
-                            valor = vm->reg[MBR];
-                            printf("%hu", valor);
-                        }
-                        else
-                            // No es una base valida
-                            exit(1);
+            } else if (vm->reg[EAX] == 1) {
+                char valor;
+                scanf(" %c", &valor);
+                vm->reg[MBR] = valor;
+                writeMemory(vm);
+            } else if (vm->reg[EAX] == 2 | vm->reg[EAX] == 4 | vm->reg[EAX] == 8) {
+                unsigned short int valor;
+                scanf("%hu", &valor);
+                vm->reg[MBR] = valor;
+                writeMemory(vm);
+            } else
+                // No es una base valida
+                exit(1);
+        } else if (call == 2)
+            if (vm->reg[EAX] == 0) {
+                int valor;
+                readMemory(vm);
+                valor = vm->reg[MBR];
+                printf("%d", valor);
+            } else if (vm->reg[EAX] == 1) {
+                char valor;
+                readMemory(vm);
+                valor = vm->reg[MBR];
+                printf("%c", valor);
+            } else if (vm->reg[EAX] == 2 | vm->reg[EAX] == 4 | vm->reg[EAX] == 8) {
+                unsigned short int valor;
+                readMemory(vm);
+                valor = vm->reg[MBR];
+                printf("%hu", valor);
+            } else
+                // No es una base valida
+                exit(1);
 }
 
 void JMP(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -156,29 +144,29 @@ void CMP(TVM *vm, int tipoOp1, int tipoOp2) {
 }
 
 void SHL(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
+    int value1, value2;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
     value1 = value1 << value2;
-    setCC(vm,value1);
-    setOp(vm,vm->reg[OP1],value1);
+    setCC(vm, value1);
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void SHR(TVM *vm, int tipoOp1, int tipoOp2) {
     int value1, value2, mascara = 0xFFFFFFFF;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
-    value1 &= ~(mascara << (32 - value2)); 
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
+    value1 &= ~(mascara << (32 - value2));
     /*
-    
+
         Ej:
-    
+
         value1 = 1111;
         value2 = 1;
 
         value1 >> value2
         En C quedaria 1111 (Mantiene signo) tendria que ser 0111
-        
+
         Entonces nuestra mascara que es 1111 hago
         1111 << (4 - 1) = 1000
         ~1000 = 0111
@@ -187,44 +175,44 @@ void SHR(TVM *vm, int tipoOp1, int tipoOp2) {
         1111 & 0111 = 0111
 
     */
-    setCC(vm,value1);
-    setOp(vm,vm->reg[OP1],value1);
+    setCC(vm, value1);
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void SAR(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
+    int value1, value2;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
     value1 = value1 >> value2;
-    setCC(vm,value1);
-    setOp(vm,vm->reg[OP1],value1);
+    setCC(vm, value1);
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void AND(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
+    int value1, value2;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
     value1 = value1 & value2;
-    setCC(vm,value1);
-    setOp(vm,vm->reg[OP1],value1);
+    setCC(vm, value1);
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void OR(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
+    int value1, value2;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
     value1 = value1 | value2;
-    setCC(vm,value1);
-    setOp(vm,vm->reg[OP1],value1);
+    setCC(vm, value1);
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void XOR(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
+    int value1, value2;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
     value1 = value1 ^ value2;
-    setCC(vm,value1);
-    setOp(vm,vm->reg[OP1],value1);
+    setCC(vm, value1);
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void SWAP(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -234,72 +222,72 @@ void SWAP(TVM *vm, int tipoOp1, int tipoOp2) {
 }
 
 void LDL(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2,aux,mask = 0xFFFF0000;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
-    value1 &= mask; 
+    int value1, value2, aux, mask = 0xFFFF0000;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
+    value1 &= mask;
     value1 |= value2;
-    setOp(vm,vm->reg[OP1],value1);
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void LDH(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2,aux,mask = 0x0000FFFF;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
-    value1 &= mask; 
+    int value1, value2, aux, mask = 0x0000FFFF;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
+    value1 &= mask;
     value1 |= value2 << 16;
-    setOp(vm,vm->reg[OP1],value1);
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void RND(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
-    //TODO terminar
+    int value1, value2;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
+    // TODO terminar
 }
 
 void ADD(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
+    int value1, value2;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
     value1 += value2;
-    setCC(vm,value1);
-    setOp(vm,vm->reg[OP1],value1);
+    setCC(vm, value1);
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void SUB(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
+    int value1, value2;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
     value1 -= value2;
-    setCC(vm,value1);
-    setOp(vm,vm->reg[OP1],value1);
+    setCC(vm, value1);
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void MUL(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
+    int value1, value2;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
     value1 *= value2;
-    setCC(vm,value1);
-    setOp(vm,vm->reg[OP1],value1);
+    setCC(vm, value1);
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void DIV(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
+    int value1, value2;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
     vm->reg[AC] = value1 % value2;
-    value1 /= value2; //hace division entera porque ambos son enteros
-    setCC(vm,value1);
-    setOp(vm,vm->reg[OP1],value1);
+    value1 /= value2;  // hace division entera porque ambos son enteros
+    setCC(vm, value1);
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void MOV(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1,value2;
-    value1 = getOp(vm,vm->reg[OP1]);
-    value2 = getOp(vm,vm->reg[OP2]);
-    setOp(vm,value1,value2);
+    int value1, value2;
+    value1 = getOp(vm, vm->reg[OP1]);
+    value2 = getOp(vm, vm->reg[OP2]);
+    setOp(vm, value1, value2);
 }
 
 void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -360,10 +348,15 @@ int convertToPhysicalAddress(TVM *vm) {
         printf("Error: Segmentation fault.\n");
         exit(1);
     }
-
+    printf("Segment: %d\n", segment);
     baseSeg = vm->tableSeg[segment].base;
     offSeg = vm->reg[LAR] & 0x0000FFFF;
+    printf("Base: 0x%X Offset: 0x%X\n", baseSeg, offSeg);
     return 0x00000000 | (baseSeg + offSeg);
+}
+int signExtend(unsigned int value, int nbytes) {
+    int shift = (4 - nbytes) * 8;           // cuántos bits correr
+    return (int)(value << shift) >> shift;  // extiende signo al castear
 }
 
 void readMemory(TVM *vm) {
@@ -371,34 +364,36 @@ void readMemory(TVM *vm) {
     // tiene que venir el MAR seteado con la cantidad de bytes a leer
     vm->reg[MAR] |= physAddr;
     int bytesToRead = (vm->reg[MAR] & 0xFFFF0000) >> 16;
-    vm->reg[MBR] = 0;  // inicializo MBR en 0
+    int address = (vm->reg[MAR] & 0x0000FFFF);
+    vm->reg[MBR] = 0x00000000;  // inicializo MBR en 0
+    int acc = 0;
     for (int i = 1; i <= bytesToRead; i++) {
-        vm->reg[MBR] |= (vm->mem[vm->reg[MAR] + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
+        vm->reg[MBR] |= (vm->mem[address + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
     }
     vm->reg[MBR] = vm->mem[vm->reg[MAR]];
+    vm->reg[MBR] = signExtend(acc, bytesToRead);
 }
 
 void writeMemory(TVM *vm) {
     int physAddr = convertToPhysicalAddress(vm);
     // tiene que venir el MAR seteado con la cantidad de bytes a escribir y el MBR con los datos a escribir
     vm->reg[MAR] |= physAddr;
+    printf("Physical Address to write: 0x%X\n", vm->reg[MAR]);
     int bytesToWrite = (vm->reg[MAR] & 0xFFFF0000) >> 16;
-    for (int i = 1; i <= bytesToWrite; i++) {
+    int address = (vm->reg[MAR] & 0x0000FFFF);
+    for (int i = 0; i < bytesToWrite; i++) {
         // 0x0004000A
-        vm->mem[vm->reg[MAR] + i - 1] = vm->reg[MBR] >> (8 * (bytesToWrite - i)) & 0xFF;  // escribo byte a byte
+        printf("Writing to memory address 0x%X: 0x%X\n", vm->reg[MAR] + i, vm->reg[MBR] >> (8 * (bytesToWrite - i - 1)) & 0xFF);
+        vm->mem[address + i] = vm->reg[MBR] >> (8 * (bytesToWrite - i - 1)) & 0xFF;  // escribo byte a byte
     }
 }
-void createLogicAdress(TVM *vm) {
-    // int segment, offset;
-    // segment = vm->reg[LAR] & 0xFFFF0000; //obtengo el segmento
-    // offset = vm->reg[LAR] & 0x0000FFFF; //obtengo el offset
-    // vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | offset; //cargo LAR con segmento de datos y offset del operando
-}
+
 void initTSR(TVM *vm, unsigned short int size) {
-    vm->tableSeg[0].base=0;
-    vm->tableSeg[0].size=size;
-    vm->tableSeg[1].base=size;
-    vm->tableSeg[1].size = 16384 - size;
+    vm->tableSeg[0].base = 0;
+    vm->tableSeg[0].size = size;
+    vm->tableSeg[1].base = size;
+    int cantBytes = size;
+    vm->tableSeg[1].size = 16384 - cantBytes;
 }
 
 void readFile(TVM *vm, char *fileName) {
@@ -459,8 +454,8 @@ void readFile(TVM *vm, char *fileName) {
     // TODO cambiar los prints y revisar en general
 }
 
-void showCodeSegment(TVM *vm){
-    for(int i = 0; i < vm->tableSeg[0].size; i++){
+void showCodeSegment(TVM *vm) {
+    for (int i = 0; i < vm->tableSeg[0].size; i++) {
         printf("[%04x]: %02x\n", i, vm->mem[i]);
     }
 }
@@ -473,22 +468,21 @@ void initVm(TVM *vm) {
 
 void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
 
-    if (TOP == 0b01) { 
-        vm->reg[numOp] = 0x01 << 24;                 // registro
-        vm->reg[numOp] |= vm->mem[vm->reg[IP]];     // lee el registro
-        vm->reg[IP]++;                              // incrementa el contador de instrucciones
+    if (TOP == 0b01) {
+        vm->reg[numOp] = 0x01 << 24;             // registro
+        vm->reg[numOp] |= vm->mem[vm->reg[IP]];  // lee el registro
+        vm->reg[IP]++;                           // incrementa el contador de instrucciones
     } else {
         if (TOP == 0b10) {
-            vm->reg[numOp] = 0x02 << 24;                // inmediato
-            vm->reg[numOp] |= (vm->mem[vm->reg[IP]] << 8) | vm->mem[vm->reg[IP] + 1];      // lee el inmediato
-            vm->reg[IP] += 2;                                                             // incrementa el contador de instrucciones
+            vm->reg[numOp] = 0x02 << 24;                                               // inmediato
+            vm->reg[numOp] |= (vm->mem[vm->reg[IP]] << 8) | vm->mem[vm->reg[IP] + 1];  // lee el inmediato
+            vm->reg[IP] += 2;                                                          // incrementa el contador de instrucciones
         } else {
-            if(TOP == 0b11){ // memoria
-                vm->reg[numOp] = 0x03 << 24; // memoria
-                vm->reg[numOp] |= (vm->mem[vm->reg[IP]] << 16) | (vm->mem[vm->reg[IP] + 1] << 8) | vm->mem[vm->reg[IP] + 2]; // lee el operando de memoria
-                vm->reg[IP] += 3; // incrementa el contador de instrucciones
-            }
-            else{
+            if (TOP == 0b11) {                                                                                                // memoria
+                vm->reg[numOp] = 0x03 << 24;                                                                                  // memoria
+                vm->reg[numOp] |= (vm->mem[vm->reg[IP]] << 16) | (vm->mem[vm->reg[IP] + 1] << 8) | vm->mem[vm->reg[IP] + 2];  // lee el operando de memoria
+                vm->reg[IP] += 3;                                                                                             // incrementa el contador de instrucciones
+            } else {
                 printf("Error: Tipo de operando invalido.\n");
                 exit(1);
             }
@@ -514,7 +508,6 @@ void readInstruction(TVM *vm) {
     readOp(vm, TOP1, OP1);
     menu(vm, TOP1, TOP2);
 }
-
 
 void executeProgram(TVM *vm) {
     while (1) {
