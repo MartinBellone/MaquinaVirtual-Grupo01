@@ -27,23 +27,5 @@ int main() {
     // printf("Memory: 0x%X\n", vm.reg[MBR]);
     // printf("Memory: %d\n", vm.reg[MBR]);
 
-    vm.reg[MAR] = 0x00020000;
-    vm.reg[MBR] = 300;
-    vm.reg[LAR] = 0x00010006;
-    writeMemory(&vm);
-    vm.reg[MAR] = 0x00020000;
-    vm.reg[LAR] = 0x00010006;
-    readMemory(&vm);
-    printf("2 bytes, valor escrito=300, leido=%d (0x%X)\n", vm.reg[MBR], vm.reg[MBR]);
-    vm.reg[MAR] = 0x00020000;
-    vm.reg[MBR] = -300;
-    vm.reg[LAR] = 0x00010006;
-    writeMemory(&vm);
-    vm.reg[MAR] = 0x00020000;
-    vm.reg[LAR] = 0x00010006;
-    readMemory(&vm);
-    printf("2 bytes, valor escrito=-300, leido=%d (0x%X)\n", vm.reg[MBR], vm.reg[MBR]);
-    // Clean up
-
     return 0;
 }

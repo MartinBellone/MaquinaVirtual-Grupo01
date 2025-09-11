@@ -243,13 +243,9 @@ void readMemory(TVM *vm) {
     vm->reg[MBR] = 0x00000000;  // inicializo MBR en 0
     int acc = 0;
     for (int i = 1; i <= bytesToRead; i++) {
-        unsigned char b = vm->mem[address + i];
-        acc = (acc << 8) | b;  // MSB primero
-        // debug opcional:
-        // printf("Reading @0x%X = 0x%X\n", address + i, b);
+        vm->reg[MBR] |= (vm->mem[address + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
     }
-    // vm->reg[MBR] = vm->mem[address];
-    // debo tener en cuenta el signo
+    vm->reg[MBR] = vm->mem[vm->reg[MAR]];
     vm->reg[MBR] = signExtend(acc, bytesToRead);
 }
 
@@ -266,12 +262,7 @@ void writeMemory(TVM *vm) {
         vm->mem[address + i] = vm->reg[MBR] >> (8 * (bytesToWrite - i - 1)) & 0xFF;  // escribo byte a byte
     }
 }
-void createLogicAdress(TVM *vm) {
-    // int segment, offset;
-    // segment = vm->reg[LAR] & 0xFFFF0000; //obtengo el segmento
-    // offset = vm->reg[LAR] & 0x0000FFFF; //obtengo el offset
-    // vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | offset; //cargo LAR con segmento de datos y offset del operando
-}
+
 void initTSR(TVM *vm, unsigned short int size) {
     vm->tableSeg[0].base = 0;
     vm->tableSeg[0].size = size;
