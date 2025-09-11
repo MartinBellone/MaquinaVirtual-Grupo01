@@ -241,9 +241,9 @@ void LDH(TVM *vm, int tipoOp1, int tipoOp2) {
 
 void RND(TVM *vm, int tipoOp1, int tipoOp2) {
     int value1, value2;
+    value1 = getOp(vm, vm->reg[OP1]);
     value2 = getOp(vm, vm->reg[OP2]);
-    value1 = rand() % (value2 + 1); //deberia sumar el minimo del intervalo pero siempre es 0
-    setOp(vm,vm->reg[OP1],value1);
+    // TODO terminar
 }
 
 void ADD(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -284,10 +284,10 @@ void DIV(TVM *vm, int tipoOp1, int tipoOp2) {
 }
 
 void MOV(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1, value2;
-    value1 = getOp(vm, vm->reg[OP1]);
+    int value2;
     value2 = getOp(vm, vm->reg[OP2]);
-    setOp(vm, value1, value2);
+    setOp(vm, vm->reg[OP1], value2);
+    printf("MOV: value1: %04x \n", vm->reg[EDX]);
 }
 
 void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -311,11 +311,14 @@ int getOp(TVM *vm, int registerValue) {
         return vm->reg[opAux];
     } else if (type == 0b10) {                      // inmediato
         return (opAux << 8) >> 8;                   // extiendo el signo
-    } else if (type == 0b11) {                      // memoria
-        int registro = (opAux & 0x1F0000) >> 19;    // obtengo el registro
-        int offset = opAux & 0x0000FFFF;            // obtengo el offset
+    } else if (type == 0b11) {
+        int registro = (opAux & 0x1F0000) >> 16;    // obtengo el registro
+        int offset = opAux & 0x0000FFFF;
+        printf("Registro: %x Offset: %x\n", registro, offset);         // obtengo el offset
         vm->reg[LAR] = vm->reg[registro] + offset;  // cargo LAR con segmento de datos y offset del operando
-        vm->reg[MAR] = 0x00040000;                  // seteamos MAR para leer 4 bytes
+        vm->reg[MAR] = 0x00040000;
+        printf("LAR: %x\n", vm->reg[LAR]);
+        printf("MAR: %x\n", vm->reg[MAR]);              // seteamos MAR para leer 4 bytes
         readMemory(vm);
         return vm->reg[MBR];
     }
@@ -330,7 +333,7 @@ void setOp(TVM *vm, int registerValue, int value) {
         printf("Error: No se puede escribir en un inmediato.\n");
         exit(1);
     } else if (type == 0b11) {                    // memoria
-        int registro = (opAux & 0x1F0000) >> 19;  // obtengo el registro
+        int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
         int offset = opAux & 0x0000FFFF;          // obtengo el offset
         // cargo LAR con el contenido del registro (debera ser un puntero) y offset del operando
         vm->reg[LAR] = vm->reg[registro] + offset;
@@ -361,10 +364,11 @@ int signExtend(unsigned int value, int nbytes) {
 
 void readMemory(TVM *vm) {
     int physAddr = convertToPhysicalAddress(vm);
+    printf("Physical Address to read: 0x%X\n", physAddr);
     // tiene que venir el MAR seteado con la cantidad de bytes a leer
     vm->reg[MAR] |= physAddr;
     int bytesToRead = (vm->reg[MAR] & 0xFFFF0000) >> 16;
-    int address = (vm->reg[MAR] & 0x0000FFFF);
+    int address = physAddr;  // direccion fisica
     vm->reg[MBR] = 0x00000000;  // inicializo MBR en 0
     int acc = 0;
     for (int i = 1; i <= bytesToRead; i++) {
@@ -376,6 +380,7 @@ void readMemory(TVM *vm) {
 
 void writeMemory(TVM *vm) {
     int physAddr = convertToPhysicalAddress(vm);
+    printf("Writting...\n");
     // tiene que venir el MAR seteado con la cantidad de bytes a escribir y el MBR con los datos a escribir
     vm->reg[MAR] |= physAddr;
     printf("Physical Address to write: 0x%X\n", vm->reg[MAR]);
@@ -506,6 +511,7 @@ void readInstruction(TVM *vm) {
     // lee los operandos
     readOp(vm, TOP2, OP2);
     readOp(vm, TOP1, OP1);
+    printf("OPC: %d TOP1: %d TOP2: %d\n OP1: %x OP2: %x\n", vm->reg[OPC], TOP1, TOP2, vm->reg[OP1], vm->reg[OP2]);
     menu(vm, TOP1, TOP2);
 }
 
