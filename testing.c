@@ -14,6 +14,12 @@ int main( ) {
     // Load a program into memory
     readFile(&vm, "sample.vmx");
 
+    // Mostrar el segmento de código cargado
+    //showCodeSegment(&vm);
+
+    // Execute the program
+    executeProgram(&vm);
+
 
 
     // Clean up

@@ -309,7 +309,7 @@ void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
 void menu(TVM *vm, int tipoOp1, int tipoOp2) {
     void (*func[])(TVM *vm, int tipoOp1, int tipoOp2) = {
         SYS, JMP, JZ, JP, JP, JN, JNZ, JNP, JNN, NOT, invalidOpCode, invalidOpCode,
-        invalidOpCode, invalidOpCode, invalidOpCode, invalidOpCode,
+        invalidOpCode, invalidOpCode, invalidOpCode,
         STOP, MOV, ADD, SUB, MUL, DIV, CMP, SHL, SHR, SAR, AND, OR, XOR, SWAP, LDL, LDH,
         RND};
     func[vm->reg[OPC]](vm, tipoOp1, tipoOp2);
@@ -395,11 +395,10 @@ void createLogicAdress(TVM *vm) {
     // vm->reg[LAR] = (vm->reg[DS] & 0xFFFF0000) | offset; //cargo LAR con segmento de datos y offset del operando
 }
 void initTSR(TVM *vm, unsigned short int size) {
-    // vm->tableSeg[0].base=0;
-    // vm->tableSeg[0].size=size;
-    // vm->tableSeg[1].base=size;
-    // int cantBytes = size;
-    // vm->tableSeg[1].size = 16384 - cantBytes;
+    vm->tableSeg[0].base=0;
+    vm->tableSeg[0].size=size;
+    vm->tableSeg[1].base=size;
+    vm->tableSeg[1].size = 16384 - size;
 }
 
 void readFile(TVM *vm, char *fileName) {
@@ -460,6 +459,12 @@ void readFile(TVM *vm, char *fileName) {
     // TODO cambiar los prints y revisar en general
 }
 
+void showCodeSegment(TVM *vm){
+    for(int i = 0; i < vm->tableSeg[0].size; i++){
+        printf("[%04x]: %02x\n", i, vm->mem[i]);
+    }
+}
+
 void initVm(TVM *vm) {
     vm->reg[CS] = 0;            // segmento de codigo
     vm->reg[IP] = vm->reg[CS];  // contador de instrucciones apunta al inicio del segmento de codigo
@@ -468,15 +473,25 @@ void initVm(TVM *vm) {
 
 void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
 
-    if (TOP == 0b01) {                              // registro
-        vm->reg[numOp] = vm->mem[vm->reg[IP] + 1];  // lee el registro
+    if (TOP == 0b01) { 
+        vm->reg[numOp] = 0x01 << 24;                 // registro
+        vm->reg[numOp] |= vm->mem[vm->reg[IP]];     // lee el registro
         vm->reg[IP]++;                              // incrementa el contador de instrucciones
     } else {
         if (TOP == 0b10) {
-            vm->reg[numOp] = (vm->mem[vm->reg[IP] + 1] << 8) | vm->mem[vm->reg[IP] + 2];  // lee el inmediato
+            vm->reg[numOp] = 0x02 << 24;                // inmediato
+            vm->reg[numOp] |= (vm->mem[vm->reg[IP]] << 8) | vm->mem[vm->reg[IP] + 1];      // lee el inmediato
             vm->reg[IP] += 2;                                                             // incrementa el contador de instrucciones
         } else {
-            // TODO parte de memoria
+            if(TOP == 0b11){ // memoria
+                vm->reg[numOp] = 0x03 << 24; // memoria
+                vm->reg[numOp] |= (vm->mem[vm->reg[IP]] << 16) | (vm->mem[vm->reg[IP] + 1] << 8) | vm->mem[vm->reg[IP] + 2]; // lee el operando de memoria
+                vm->reg[IP] += 3; // incrementa el contador de instrucciones
+            }
+            else{
+                printf("Error: Tipo de operando invalido.\n");
+                exit(1);
+            }
         }
     }
 }
@@ -497,6 +512,12 @@ void readInstruction(TVM *vm) {
     // lee los operandos
     readOp(vm, TOP2, OP2);
     readOp(vm, TOP1, OP1);
-
     menu(vm, TOP1, TOP2);
+}
+
+
+void executeProgram(TVM *vm) {
+    while (1) {
+        readInstruction(vm);
+    }
 }
