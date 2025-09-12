@@ -268,7 +268,9 @@ void MUL(TVM *vm, int tipoOp1, int tipoOp2) {
     int value1, value2;
     value1 = getOp(vm, vm->reg[OP1]);
     value2 = getOp(vm, vm->reg[OP2]);
+    printf("Valor 1: %d Valor 2: %d\n", value1, value2);
     value1 *= value2;
+    printf("Valor de la multiplicacion: %d\n", value1);
     setCC(vm, value1);
     setOp(vm, vm->reg[OP1], value1);
 }
@@ -287,7 +289,6 @@ void MOV(TVM *vm, int tipoOp1, int tipoOp2) {
     int value2;
     value2 = getOp(vm, vm->reg[OP2]);
     setOp(vm, vm->reg[OP1], value2);
-    printf("MOV: value1: %04x \n", vm->reg[EDX]);
 }
 
 void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -309,17 +310,17 @@ int getOp(TVM *vm, int registerValue) {
 
     if (type == 0b01) {  // registro
         return vm->reg[opAux];
-    } else if (type == 0b10) {                      // inmediato
-        return (opAux << 8) >> 8;                   // extiendo el signo
+    } else if (type == 0b10) {     // inmediato
+        return (opAux << 8) >> 8;  // extiendo el signo
     } else if (type == 0b11) {
-        int registro = (opAux & 0x1F0000) >> 16;    // obtengo el registro
+        int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
         int offset = opAux & 0x0000FFFF;
-        printf("Registro: %x Offset: %x\n", registro, offset);         // obtengo el offset
-        vm->reg[LAR] = vm->reg[registro] + offset;  // cargo LAR con segmento de datos y offset del operando
+        printf("Registro: %x Offset: %x\n", registro, offset);  // obtengo el offset
+        vm->reg[LAR] = vm->reg[registro] + offset;              // cargo LAR con segmento de datos y offset del operando
         vm->reg[MAR] = 0x00040000;
-        printf("LAR: %x\n", vm->reg[LAR]);
-        printf("MAR: %x\n", vm->reg[MAR]);              // seteamos MAR para leer 4 bytes
+        // seteamos MAR para leer 4 bytes
         readMemory(vm);
+        printf("Valor leido: %d\n", vm->reg[MBR]);
         return vm->reg[MBR];
     }
 }
@@ -351,7 +352,7 @@ int convertToPhysicalAddress(TVM *vm) {
         printf("Error: Segmentation fault.\n");
         exit(1);
     }
-    printf("Segment: %d\n", segment);
+
     baseSeg = vm->tableSeg[segment].base;
     offSeg = vm->reg[LAR] & 0x0000FFFF;
     printf("Base: 0x%X Offset: 0x%X\n", baseSeg, offSeg);
@@ -368,14 +369,16 @@ void readMemory(TVM *vm) {
     // tiene que venir el MAR seteado con la cantidad de bytes a leer
     vm->reg[MAR] |= physAddr;
     int bytesToRead = (vm->reg[MAR] & 0xFFFF0000) >> 16;
-    int address = physAddr;  // direccion fisica
     vm->reg[MBR] = 0x00000000;  // inicializo MBR en 0
-    int acc = 0;
+
     for (int i = 1; i <= bytesToRead; i++) {
-        vm->reg[MBR] |= (vm->mem[address + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
+        printf("Reading from memory address 0x%X: 0x%X\n", vm->reg[MAR] + i - 1, vm->mem[physAddr + i - 1]);
+        vm->reg[MBR] |= (vm->mem[physAddr + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
     }
-    vm->reg[MBR] = vm->mem[vm->reg[MAR]];
-    vm->reg[MBR] = signExtend(acc, bytesToRead);
+
+    // vm->reg[MBR] = vm->mem[physAddr];
+    printf("Value read: 0x%X\n", vm->reg[MBR]);
+    vm->reg[MBR] = signExtend(vm->reg[MBR], bytesToRead);
 }
 
 void writeMemory(TVM *vm) {
@@ -438,7 +441,6 @@ void readFile(TVM *vm, char *fileName) {
 
         codeSize = (sizeBytes[0] << 8) | sizeBytes[1];
 
-        printf("sizeBytes[0]: %d sizeBytes[1]: %d\n", sizeBytes[0], sizeBytes[1]);
         printf("Tamanio del segmento de codigo: %u bytes\n", codeSize);
 
         initTSR(vm, codeSize);
@@ -509,9 +511,11 @@ void readInstruction(TVM *vm) {
     vm->reg[OPC] = instruction & maskOPC;
     vm->reg[IP]++;  // se para en el primer byte del segundo operando
     // lee los operandos
-    readOp(vm, TOP2, OP2);
+    printf("OPC: %X TOP1: %d TOP2: %d\n OP1: %x OP2: %x\n", vm->reg[OPC], TOP1, TOP2, vm->reg[OP1], vm->reg[OP2]);
+
     readOp(vm, TOP1, OP1);
-    printf("OPC: %d TOP1: %d TOP2: %d\n OP1: %x OP2: %x\n", vm->reg[OPC], TOP1, TOP2, vm->reg[OP1], vm->reg[OP2]);
+    readOp(vm, TOP2, OP2);
+
     menu(vm, TOP1, TOP2);
 }
 
