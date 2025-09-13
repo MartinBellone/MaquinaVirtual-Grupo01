@@ -22,14 +22,16 @@
 #define CS 26
 #define DS 27
 
-#define CC_N 0x80000000
-#define CC_Z 0x40000000
 
 void setCC(TVM *vm, int value) {
-    if (value < 0)
-        vm->reg[CC] = CC_N;
-    else if (value == 0)
-        vm->reg[CC] = CC_Z;
+    if (value < 0) //N=1
+        vm->reg[CC] |= 1 << 31;
+    else  //N=0
+        vm->reg[CC] &= 0x7FFFFFFF;
+    if (value == 0) //Z=1
+        vm->reg[CC] |= 1 << 30;
+    else //Z=0
+        vm->reg[CC] &= 0xBFFFFFFF;
 }
 
 void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -85,42 +87,68 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
 }
 
 void JMP(TVM *vm, int tipoOp1, int tipoOp2) {
-    vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    int direccion = getOp(vm, vm->reg[OP1]);
+    vm->reg[IP] &= 0xFFFF0000;
+    vm->reg[IP] |= direccion;
 }
 
 void JZ(TVM *vm, int tipoOp1, int tipoOp2) {
-    if (vm->reg[CC] == CC_Z) {
-        vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    int direccion = getOp(vm, vm->reg[OP1]);
+    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30; // Aislo el bit Z
+    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31; // Aislo el bit N
+    if (Z == 1 && N == 0) {
+        vm->reg[IP] &= 0xFFFF0000;
+        vm->reg[IP] |= direccion;
     }
 }
 
 void JP(TVM *vm, int tipoOp1, int tipoOp2) {
-    if (vm->reg[CC] != CC_N && vm->reg[CC] != CC_Z) {
-        vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    int direccion = getOp(vm, vm->reg[OP1]);
+    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30; // Aislo el bit Z
+    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31; // Aislo el bit N
+    if (N == 0 && Z == 0) {
+        vm->reg[IP] &= 0xFFFF0000;
+        vm->reg[IP] |= direccion;
     }
 }
 
 void JN(TVM *vm, int tipoOp1, int tipoOp2) {
-    if (vm->reg[CC] == CC_N) {
-        vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    int direccion = getOp(vm, vm->reg[OP1]);
+    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30; // Aislo el bit Z
+    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31; // Aislo el bit N
+    if (N == 1 && Z == 0) {
+        vm->reg[IP] &= 0xFFFF0000;
+        vm->reg[IP] |= direccion;
     }
 }
 
 void JNZ(TVM *vm, int tipoOp1, int tipoOp2) {
-    if (vm->reg[CC] != CC_Z) {
-        vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    int direccion = getOp(vm, vm->reg[OP1]);
+    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30; // Aislo el bit Z
+    // tengo en cuenta solo Z porque si Z=0, N puede ser 0 o 1
+    if (Z == 0) {
+        vm->reg[IP] &= 0xFFFF0000;
+        vm->reg[IP] |= direccion;
     }
 }
 
 void JNP(TVM *vm, int tipoOp1, int tipoOp2) {
-    if (vm->reg[CC] == CC_N || vm->reg[CC] == CC_Z) {
-        vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    int direccion = getOp(vm, vm->reg[OP1]);
+    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30; // Aislo el bit Z
+    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31; // Aislo el bit N
+    if (N == 1 && Z == 0 || N == 0 && Z == 1) { // si el resultado es negativo o cero
+        vm->reg[IP] &= 0xFFFF0000;
+        vm->reg[IP] |= direccion;
     }
 }
 
 void JNN(TVM *vm, int tipoOp1, int tipoOp2) {
-    if (vm->reg[CC] != CC_N) {
-        vm->reg[IP] = getOp(vm, vm->reg[OP1]);
+    int direccion = getOp(vm, vm->reg[OP1]);
+    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31; // Aislo el bit N
+    // tengo en cuenta solo N porque si N=0, Z puede ser 0 o 1
+    if (N == 0) {
+        vm->reg[IP] &= 0xFFFF0000;
+        vm->reg[IP] |= direccion;
     }
 }
 
@@ -243,7 +271,8 @@ void RND(TVM *vm, int tipoOp1, int tipoOp2) {
     int value1, value2;
     value1 = getOp(vm, vm->reg[OP1]);
     value2 = getOp(vm, vm->reg[OP2]);
-    // TODO terminar
+    value1 = rand() % (value2 + 1); //deberia sumar fuera y restar dentro del parentesis el minimo del intervalo pero siempre es 0
+    setOp(vm,vm->reg[OP1],value1);
 }
 
 void ADD(TVM *vm, int tipoOp1, int tipoOp2) {
