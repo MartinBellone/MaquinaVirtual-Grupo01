@@ -1,3 +1,6 @@
+#ifndef VIRTUAL_MACHINE_H
+#define VIRTUAL_MACHINE_H
+
 typedef struct {
     unsigned short int base;
     unsigned short int size;
@@ -9,9 +12,6 @@ typedef struct {
     TSR tableSeg[8];
 } TVM;  // Type virtual machine
 
-int convertToPhysicalAddress(TVM *vm);
-void readMemory(TVM *vm);
-void writeMemory(TVM *vm);
 void readFile(TVM *vm, char *fileName);  // Funcion para leer el archivo vmx
 void initVm(TVM *vm);                    // Funcion para inicializar la maquina virtual
 void readInstruction(TVM *vm);
@@ -19,7 +19,6 @@ void readOp(TVM *vm, int TOP, int numOp);
 void showCodeSegment(TVM *vm);
 void executeProgram(TVM *vm);
 
-int getOp(TVM *vm, int registerValue);
-void setOp(TVM *vm, int registerValue, int value);
-
 void MOV(TVM *vm, int tipoOp1, int tipoOp2);
+
+#endif // VIRTUAL_MACHINE_H

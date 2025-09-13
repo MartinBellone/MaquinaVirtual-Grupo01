@@ -13,7 +13,7 @@ int main() {
     // }
 
     // Load a program into memory
-    readFile(&vm, "sample.vmx");
+    readFile(&vm, "./testFiles/Ej1.vmx");
 
     // Mostrar el segmento de código cargado
     // showCodeSegment(&vm);

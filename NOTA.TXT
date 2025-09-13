@@ -1,2 +1,0 @@
-En esta rama esta la correcion de readOP, menu y la incorporacion
-de dos nuevas funciones
