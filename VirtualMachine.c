@@ -513,8 +513,8 @@ void readInstruction(TVM *vm) {
     // lee los operandos
     printf("OPC: %X TOP1: %d TOP2: %d\n OP1: %x OP2: %x\n", vm->reg[OPC], TOP1, TOP2, vm->reg[OP1], vm->reg[OP2]);
 
-    readOp(vm, TOP1, OP1);
     readOp(vm, TOP2, OP2);
+    readOp(vm, TOP1, OP1);
 
     menu(vm, TOP1, TOP2);
 }
