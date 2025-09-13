@@ -22,28 +22,31 @@
 #define CS 26
 #define DS 27
 
-
 void setCC(TVM *vm, int value) {
-    if (value < 0) //N=1
+    if (value < 0)  // N=1
         vm->reg[CC] |= 1 << 31;
-    else  //N=0
+    else  // N=0
         vm->reg[CC] &= 0x7FFFFFFF;
-    if (value == 0) //Z=1
+    if (value == 0)  // Z=1
         vm->reg[CC] |= 1 << 30;
-    else //Z=0
+    else  // Z=0
         vm->reg[CC] &= 0xBFFFFFFF;
+    printf("CC: %o\n", vm->reg[CC]);
 }
 
 void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
     int call = vm->reg[OP1];
+    call = call & 0x000000FF;  // Aislo los 8 bits menos significativos
     int tamanioCelda = (vm->reg[ECX] & 0xFFFF0000) >> 16;
     int cantLecturas = vm->reg[ECX] & 0x0000FFFF;
-    if (vm->reg[EAX] < 0 || vm->reg[EAX] > 10 || vm->reg[EAX] % 2 != 0)
+    printf("Call: %X Tamanio celda: %X Cantidad lecturas: %X\n", call, tamanioCelda, cantLecturas);
+    printf("EAX: %X \n", vm->reg[EAX]);
+    if (vm->reg[EAX] < 0 || vm->reg[EAX] > 10)
         exit(1);
 
     vm->reg[LAR] = vm->reg[EDX];        // Cargo LAR con la direcicon logica
     vm->reg[MAR] = tamanioCelda << 16;  // Cargo MAR con la cantidad de bytes a leer
-
+    printf("LAR: %X MAR: %X\n", vm->reg[LAR], vm->reg[MAR]);
     for (int i = 0; i < cantLecturas; i++)
         if (call == 1) {
             printf("[%08x]: ", vm->reg[EDX]);
@@ -72,10 +75,10 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
                 valor = vm->reg[MBR];
                 printf("%d", valor);
             } else if (vm->reg[EAX] == 1) {
-                char valor;
+                int valor;
                 readMemory(vm);
                 valor = vm->reg[MBR];
-                printf("%c", valor);
+                printf("%d\n", valor);
             } else if (vm->reg[EAX] == 2 | vm->reg[EAX] == 4 | vm->reg[EAX] == 8) {
                 unsigned short int valor;
                 readMemory(vm);
@@ -94,8 +97,8 @@ void JMP(TVM *vm, int tipoOp1, int tipoOp2) {
 
 void JZ(TVM *vm, int tipoOp1, int tipoOp2) {
     int direccion = getOp(vm, vm->reg[OP1]);
-    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30; // Aislo el bit Z
-    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31; // Aislo el bit N
+    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30;  // Aislo el bit Z
+    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31;  // Aislo el bit N
     if (Z == 1 && N == 0) {
         vm->reg[IP] &= 0xFFFF0000;
         vm->reg[IP] |= direccion;
@@ -104,8 +107,8 @@ void JZ(TVM *vm, int tipoOp1, int tipoOp2) {
 
 void JP(TVM *vm, int tipoOp1, int tipoOp2) {
     int direccion = getOp(vm, vm->reg[OP1]);
-    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30; // Aislo el bit Z
-    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31; // Aislo el bit N
+    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30;  // Aislo el bit Z
+    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31;  // Aislo el bit N
     if (N == 0 && Z == 0) {
         vm->reg[IP] &= 0xFFFF0000;
         vm->reg[IP] |= direccion;
@@ -114,8 +117,8 @@ void JP(TVM *vm, int tipoOp1, int tipoOp2) {
 
 void JN(TVM *vm, int tipoOp1, int tipoOp2) {
     int direccion = getOp(vm, vm->reg[OP1]);
-    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30; // Aislo el bit Z
-    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31; // Aislo el bit N
+    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30;  // Aislo el bit Z
+    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31;  // Aislo el bit N
     if (N == 1 && Z == 0) {
         vm->reg[IP] &= 0xFFFF0000;
         vm->reg[IP] |= direccion;
@@ -124,19 +127,22 @@ void JN(TVM *vm, int tipoOp1, int tipoOp2) {
 
 void JNZ(TVM *vm, int tipoOp1, int tipoOp2) {
     int direccion = getOp(vm, vm->reg[OP1]);
-    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30; // Aislo el bit Z
+    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30;  // Aislo el bit Z
+    printf("Bit Z: %d\n", Z);
+    printf("Direccion: %X\n", direccion);
     // tengo en cuenta solo Z porque si Z=0, N puede ser 0 o 1
     if (Z == 0) {
         vm->reg[IP] &= 0xFFFF0000;
         vm->reg[IP] |= direccion;
+        printf("Salto a: %X\n", vm->reg[IP]);
     }
 }
 
 void JNP(TVM *vm, int tipoOp1, int tipoOp2) {
     int direccion = getOp(vm, vm->reg[OP1]);
-    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30; // Aislo el bit Z
-    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31; // Aislo el bit N
-    if (N == 1 && Z == 0 || N == 0 && Z == 1) { // si el resultado es negativo o cero
+    unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30;  // Aislo el bit Z
+    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31;  // Aislo el bit N
+    if (N == 1 && Z == 0 || N == 0 && Z == 1) {         // si el resultado es negativo o cero
         vm->reg[IP] &= 0xFFFF0000;
         vm->reg[IP] |= direccion;
     }
@@ -144,7 +150,7 @@ void JNP(TVM *vm, int tipoOp1, int tipoOp2) {
 
 void JNN(TVM *vm, int tipoOp1, int tipoOp2) {
     int direccion = getOp(vm, vm->reg[OP1]);
-    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31; // Aislo el bit N
+    unsigned int N = (vm->reg[CC] & 0x80000000) >> 31;  // Aislo el bit N
     // tengo en cuenta solo N porque si N=0, Z puede ser 0 o 1
     if (N == 0) {
         vm->reg[IP] &= 0xFFFF0000;
@@ -271,8 +277,8 @@ void RND(TVM *vm, int tipoOp1, int tipoOp2) {
     int value1, value2;
     value1 = getOp(vm, vm->reg[OP1]);
     value2 = getOp(vm, vm->reg[OP2]);
-    value1 = rand() % (value2 + 1); //deberia sumar fuera y restar dentro del parentesis el minimo del intervalo pero siempre es 0
-    setOp(vm,vm->reg[OP1],value1);
+    value1 = rand() % (value2 + 1);  // deberia sumar fuera y restar dentro del parentesis el minimo del intervalo pero siempre es 0
+    setOp(vm, vm->reg[OP1], value1);
 }
 
 void ADD(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -280,6 +286,7 @@ void ADD(TVM *vm, int tipoOp1, int tipoOp2) {
     value1 = getOp(vm, vm->reg[OP1]);
     value2 = getOp(vm, vm->reg[OP2]);
     value1 += value2;
+    printf("Valor de la suma: %X\n", value1);
     setCC(vm, value1);
     setOp(vm, vm->reg[OP1], value1);
 }
@@ -326,7 +333,7 @@ void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
 }
 void menu(TVM *vm, int tipoOp1, int tipoOp2) {
     void (*func[])(TVM *vm, int tipoOp1, int tipoOp2) = {
-        SYS, JMP, JZ, JP, JP, JN, JNZ, JNP, JNN, NOT, invalidOpCode, invalidOpCode,
+        SYS, JMP, JZ, JP, JN, JNZ, JNP, JNN, NOT, invalidOpCode, invalidOpCode, invalidOpCode,
         invalidOpCode, invalidOpCode, invalidOpCode,
         STOP, MOV, ADD, SUB, MUL, DIV, CMP, SHL, SHR, SAR, AND, OR, XOR, SWAP, LDL, LDH,
         RND};
@@ -394,14 +401,14 @@ int signExtend(unsigned int value, int nbytes) {
 
 void readMemory(TVM *vm) {
     int physAddr = convertToPhysicalAddress(vm);
-    printf("Physical Address to read: 0x%X\n", physAddr);
-    // tiene que venir el MAR seteado con la cantidad de bytes a leer
+    // printf("Physical Address to read: 0x%X\n", physAddr);
+    //  tiene que venir el MAR seteado con la cantidad de bytes a leer
     vm->reg[MAR] |= physAddr;
     int bytesToRead = (vm->reg[MAR] & 0xFFFF0000) >> 16;
     vm->reg[MBR] = 0x00000000;  // inicializo MBR en 0
 
     for (int i = 1; i <= bytesToRead; i++) {
-        printf("Reading from memory address 0x%X: 0x%X\n", vm->reg[MAR] + i - 1, vm->mem[physAddr + i - 1]);
+        // printf("Reading from memory address 0x%X: 0x%X\n", vm->reg[MAR] + i - 1, vm->mem[physAddr + i - 1]);
         vm->reg[MBR] |= (vm->mem[physAddr + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
     }
 
@@ -412,15 +419,15 @@ void readMemory(TVM *vm) {
 
 void writeMemory(TVM *vm) {
     int physAddr = convertToPhysicalAddress(vm);
-    printf("Writting...\n");
-    // tiene que venir el MAR seteado con la cantidad de bytes a escribir y el MBR con los datos a escribir
+    // printf("Writting...\n");
+    //  tiene que venir el MAR seteado con la cantidad de bytes a escribir y el MBR con los datos a escribir
     vm->reg[MAR] |= physAddr;
-    printf("Physical Address to write: 0x%X\n", vm->reg[MAR]);
+    // printf("Physical Address to write: 0x%X\n", vm->reg[MAR]);
     int bytesToWrite = (vm->reg[MAR] & 0xFFFF0000) >> 16;
     int address = (vm->reg[MAR] & 0x0000FFFF);
     for (int i = 0; i < bytesToWrite; i++) {
         // 0x0004000A
-        printf("Writing to memory address 0x%X: 0x%X\n", vm->reg[MAR] + i, vm->reg[MBR] >> (8 * (bytesToWrite - i - 1)) & 0xFF);
+        // printf("Writing to memory address 0x%X: 0x%X\n", vm->reg[MAR] + i, vm->reg[MBR] >> (8 * (bytesToWrite - i - 1)) & 0xFF);
         vm->mem[address + i] = vm->reg[MBR] >> (8 * (bytesToWrite - i - 1)) & 0xFF;  // escribo byte a byte
     }
 }
@@ -510,12 +517,15 @@ void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de 
         vm->reg[IP]++;                           // incrementa el contador de instrucciones
     } else {
         if (TOP == 0b10) {
-            vm->reg[numOp] = 0x02 << 24;  // inmediato
-            printf("Inmediato: %X\n", vm->reg[numOp]);
-            printf("Byte inmediato: %X\n", vm->mem[vm->reg[IP]]);
-            printf("Byte inmediato sig: %X\n", vm->mem[vm->reg[IP] + 1]);
-
-            vm->reg[numOp] |= (vm->mem[vm->reg[IP]] << 8) | vm->mem[vm->reg[IP] + 1];  // lee el inmediato
+            // inmediato: 2 bytes (16 bits). Encode as: TT ........ where TT=0x02 in the top byte
+            unsigned int high = vm->mem[vm->reg[IP]];
+            unsigned int low = vm->mem[vm->reg[IP] + 1];
+            unsigned int imm = (high << 8) | low;
+            // printf("Byte inmediato: %X\n", high);
+            // printf("Byte inmediato sig: %X\n", low);
+            // printf("Inmediato antes de extender signo: %X\n", imm);
+            // Store with type in top byte (0x02)
+            vm->reg[numOp] = (0x02 << 24) | (imm & 0x00FFFFFF);
             printf("Inmediato: %X\n", vm->reg[numOp]);
             vm->reg[IP] += 2;  // incrementa el contador de instrucciones
         } else {
@@ -546,6 +556,7 @@ void readInstruction(TVM *vm) {
     vm->reg[IP]++;  // se para en el primer byte del segundo operando
     vm->reg[OP1] = 0;
     vm->reg[OP2] = 0;
+    printf("-------------------------------------------------------------------\n");
     printf("Instruccion: %X\n", instruction);
 
     if (TOP2 != 0 && TOP1 != 0) {  // Hay dos operandos
@@ -564,7 +575,6 @@ void readInstruction(TVM *vm) {
 }
 
 void executeProgram(TVM *vm) {
-    while (1) {
+    while (1)
         readInstruction(vm);
-    }
 }
