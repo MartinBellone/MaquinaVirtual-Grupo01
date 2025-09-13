@@ -16,10 +16,10 @@ int main() {
     readFile(&vm, "sample.vmx");
 
     // Mostrar el segmento de código cargado
-    // showCodeSegment(&vm);
+    showCodeSegment(&vm);
 
     // Execute the program
-    executeProgram(&vm);
+    // executeProgram(&vm);
 
     // Clean up
 

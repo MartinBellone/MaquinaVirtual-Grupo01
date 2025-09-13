@@ -463,7 +463,7 @@ void readFile(TVM *vm, char *fileName) {
 
 void showCodeSegment(TVM *vm) {
     for (int i = 0; i < vm->tableSeg[0].size; i++) {
-        printf("[%04x]: %02x\n", i, vm->mem[i]);
+        printf("[%04x]: %X\n", i, vm->mem[i]);
     }
 }
 
@@ -481,9 +481,14 @@ void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de 
         vm->reg[IP]++;                           // incrementa el contador de instrucciones
     } else {
         if (TOP == 0b10) {
-            vm->reg[numOp] = 0x02 << 24;                                               // inmediato
+            vm->reg[numOp] = 0x02 << 24;  // inmediato
+            printf("Inmediato: %X\n", vm->reg[numOp]);
+            printf("Byte inmediato: %X\n", vm->mem[vm->reg[IP]]);
+            printf("Byte inmediato sig: %X\n", vm->mem[vm->reg[IP] + 1]);
+
             vm->reg[numOp] |= (vm->mem[vm->reg[IP]] << 8) | vm->mem[vm->reg[IP] + 1];  // lee el inmediato
-            vm->reg[IP] += 2;                                                          // incrementa el contador de instrucciones
+            printf("Inmediato: %X\n", vm->reg[numOp]);
+            vm->reg[IP] += 2;  // incrementa el contador de instrucciones
         } else {
             if (TOP == 0b11) {                                                                                                // memoria
                 vm->reg[numOp] = 0x03 << 24;                                                                                  // memoria
@@ -510,12 +515,22 @@ void readInstruction(TVM *vm) {
     TOP1 = (instruction & maskTOP1) >> 4;
     vm->reg[OPC] = instruction & maskOPC;
     vm->reg[IP]++;  // se para en el primer byte del segundo operando
-    // lee los operandos
-    printf("OPC: %X TOP1: %d TOP2: %d\n OP1: %x OP2: %x\n", vm->reg[OPC], TOP1, TOP2, vm->reg[OP1], vm->reg[OP2]);
+    vm->reg[OP1] = 0;
+    vm->reg[OP2] = 0;
+    printf("Instruccion: %X\n", instruction);
 
-    readOp(vm, TOP2, OP2);
-    readOp(vm, TOP1, OP1);
+    if (TOP2 != 0 && TOP1 != 0) {  // Hay dos operandos
+        readOp(vm, TOP2, OP2);
+        readOp(vm, TOP1, OP1);
+    } else {
+        if (TOP2 != 0) {  // Hay un operando
+            readOp(vm, TOP2, OP1);
+            TOP1 = TOP2;
+            TOP2 = 0;
+        }
+    }
 
+    printf("OPC: %X TOP1: %d TOP2: %d\n OP1: %X OP2: %X\n", vm->reg[OPC], TOP1, TOP2, vm->reg[OP1], vm->reg[OP2]);
     menu(vm, TOP1, TOP2);
 }
 
