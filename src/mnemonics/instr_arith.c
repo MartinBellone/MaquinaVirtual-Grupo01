@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "constants.h"
+#include "utils.h"
 
 void ADD(TVM *vm, int tipoOp1, int tipoOp2) {
     int value1, value2;
