@@ -5,7 +5,7 @@
 #define LAR 0
 #define MAR 1
 #define MBR 2
-int main() {
+int main(int argc, char *argv[]) {
     TVM vm;
     // if (vm == NULL) {
     //     fprintf(stderr, "Error allocating memory for virtual machine.\n");
@@ -13,7 +13,7 @@ int main() {
     // }
 
     // Load a program into memory
-    readFile(&vm, "./testFiles/Ej1.vmx");
+    readFile(&vm, argv[1]);
 
     // Mostrar el segmento de código cargado
     // showCodeSegment(&vm);

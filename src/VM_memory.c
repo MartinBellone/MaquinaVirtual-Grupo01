@@ -17,8 +17,13 @@ int convertToPhysicalAddress(TVM *vm) {
 
     baseSeg = vm->tableSeg[segment].base;
     offSeg = vm->reg[LAR] & 0x0000FFFF;
+    int result = 0x00000000 | (baseSeg + offSeg);
+    if (result > (baseSeg + vm->tableSeg[segment].size - 1)) {  // si la direccion fisica es mayor a la base + size del segmento, error
+        printf("Error: Segmentation fault.\n");
+        exit(1);
+    }
     printf("Base: 0x%X Offset: 0x%X\n", baseSeg, offSeg);
-    return 0x00000000 | (baseSeg + offSeg);
+    return result;
 }
 void readMemory(TVM *vm) {
     int physAddr = convertToPhysicalAddress(vm);

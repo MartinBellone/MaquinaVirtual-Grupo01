@@ -40,6 +40,10 @@ void DIV(TVM *vm, int tipoOp1, int tipoOp2) {
     int value1, value2;
     value1 = getOp(vm, vm->reg[OP1]);
     value2 = getOp(vm, vm->reg[OP2]);
+    if (value2 == 0) {
+        printf("Error: Division por cero.\n");
+        exit(1);
+    }
     vm->reg[AC] = value1 % value2;
     value1 /= value2;  // hace division entera porque ambos son enteros
     setCC(vm, value1);

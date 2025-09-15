@@ -83,7 +83,6 @@ void readFile(TVM *vm, char *fileName) {
 
         fclose(arch);
     }
-    // TODO cambiar los prints y revisar en general
 }
 
 void showCodeSegment(TVM *vm) {

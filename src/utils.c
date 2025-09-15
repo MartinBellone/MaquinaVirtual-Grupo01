@@ -6,6 +6,13 @@
 #include "VM_memory.h"
 #include "constants.h"
 
+const char *MNEMONIC_NAMES[] = {
+    "SYS", "JMP", "JZ", "JP", "JN", "JNZ", "JNP", "JNN", "NOT",
+    "Invalid Operation Code", "Invalid Operation Code", "Invalid Operation Code",
+    "Invalid Operation Code", "Invalid Operation Code", "Invalid Operation Code",
+    "STOP", "MOV", "ADD", "SUB", "MUL", "DIV", "CMP", "SHL", "SHR", "SAR",
+    "AND", "OR", "XOR", "SWAP", "LDL", "LDH", "RND"};
+
 void setCC(TVM *vm, int value) {
     if (value < 0)  // N=1
         vm->reg[CC] |= 1 << 31;
