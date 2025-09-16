@@ -13,6 +13,16 @@ const char *MNEMONIC_NAMES[] = {
     "STOP", "MOV", "ADD", "SUB", "MUL", "DIV", "CMP", "SHL", "SHR", "SAR",
     "AND", "OR", "XOR", "SWAP", "LDL", "LDH", "RND"};
 
+const char *REGISTER_NAMES[] = {
+    "LAR", "MAR", "MBR", "IP", "OPC", "OP1", "OP2",
+    "RESERVADO", "RESERVADO", "RESERVADO", "EAX", 
+    "EBX", "ECX", "EDX", "EEX", "EFX", "AC", "CC",
+    "RESERVADO", "RESERVADO", "RESERVADO", "RESERVADO",
+    "RESERVADO", "RESERVADO", "RESERVADO", "RESERVADO",
+    "CS", "DS", "RESERVADO", "RESERVADO", "RESERVADO", 
+    "RESERVADO"
+};
+
 void setCC(TVM *vm, int value) {
     if (value < 0)  // N=1
         vm->reg[CC] |= 1 << 31;

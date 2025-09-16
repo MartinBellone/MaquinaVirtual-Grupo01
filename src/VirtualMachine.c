@@ -29,7 +29,7 @@ void initTSR(TVM *vm, unsigned short int size) {
     vm->tableSeg[1].size = 16384 - cantBytes;
 }
 
-void readFile(TVM *vm, char *fileName, int dFlag) {
+void readFile(TVM *vm, char *fileName) {
     // funcion para leer el vmx
     FILE *arch;  // TODO arreglar con writeMemory
     int i = 0;   // direccion de memoria a guardar el byte
@@ -78,7 +78,7 @@ void readFile(TVM *vm, char *fileName, int dFlag) {
                 vm->mem[i] = c;
                 i++;
             }
-            initVm(vm, dFlag);
+            initVm(vm);
         }
 
         fclose(arch);
@@ -91,11 +91,10 @@ void showCodeSegment(TVM *vm) {
     }
 }
 
-void initVm(TVM *vm, int dFlag) {
+void initVm(TVM *vm) {
     vm->reg[CS] = 0;            // segmento de codigo
     vm->reg[IP] = vm->reg[CS];  // contador de instrucciones apunta al inicio del segmento de codigo
     vm->reg[DS] = 1 << 16;      // segmento de datos
-    vm->dFlag = dFlag;
 }
 
 void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
@@ -131,17 +130,14 @@ void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de 
 }
 
 void readInstruction(TVM *vm) {
-    char instruction;
+    unsigned char instruction;
     int maskOPC = 0b00011111;   // mascara para obtener el codigo de operacion
     int maskTOP1 = 0b00110000;  // mascara para obtener el primer operando
     int maskTOP2 = 0b11000000;  // mascara para obtener el segundo operando
     int TOP1, TOP2;
 
     instruction = vm->mem[vm->reg[IP]];  // leo la instruccion
-    
-    if (vm->dFlag == 1) {
-        printf("[%X]:", vm->reg[IP]);
-    }
+
     // decodifica la instruccion
     TOP2 = (instruction & maskTOP2) >> 6;
     TOP1 = (instruction & maskTOP1) >> 4;
@@ -168,6 +164,109 @@ void readInstruction(TVM *vm) {
 }
 
 void executeProgram(TVM *vm) {
+    printf("\n----- Ejecucion del programa -----\n");
     while (1)
         readInstruction(vm);
+}
+
+
+void executeDisassembly(TVM *vm) {
+    printf("----- Disassembler -----\n");
+    int ip = vm->reg[IP];
+    int maskOPC = 0b00011111;   // mascara para obtener el codigo de operacion
+    int maskTOP1 = 0b00110000;  // mascara para obtener el primer operando
+    int maskTOP2 = 0b11000000;  // mascara para obtener el segundo operando
+
+    while(ip < vm->tableSeg[0].size){
+        unsigned char instruction;
+        int operando1, operando2;
+        int TOP1, TOP2, opc, op1, op2, i;
+
+        instruction = vm->mem[ip];  // leo la instruccion
+        printf("[%04x]  ", ip);
+        printf("%02X ", instruction);
+
+        // decodifica la instruccion
+        TOP2 = (instruction & maskTOP2) >> 6;
+        TOP1 = (instruction & maskTOP1) >> 4;
+        opc = instruction & maskOPC;
+        ip++;  // se para en el primer byte del segundo operando
+        op1 = 0;
+        op2 = 0;
+
+        int total_bytes = TOP1 + TOP2;
+        for(i = 0; i < total_bytes; i++){
+            printf(" %02X", vm->mem[ip + i] & 0xFF);
+        }
+        // Rellenar para alinear columnas (máximo 6 bytes extra)
+        for(; i < 6; i++) printf("   ");
+        printf("  |  %-8s ", MNEMONIC_NAMES[opc]);
+
+        if(TOP2 == 1){
+            operando2 = vm->mem[ip];
+            ip++;
+        }
+        else
+            if(TOP2 == 2){
+                operando2 = (vm->mem[ip] << 8) | vm->mem[ip + 1];
+                ip += 2;
+            }
+            else
+                if(TOP2 == 3){
+                    operando2 = (vm->mem[ip] << 16) | (vm->mem[ip + 1] << 8) | vm->mem[ip + 2];
+                    ip += 3;
+                }
+                else
+                    operando2 = 0;
+
+        if(TOP1 == 1){
+            operando1 = vm->mem[ip];
+            ip++;
+        }
+        else
+            if(TOP1 == 2){
+                operando1 = (vm->mem[ip] << 8) | vm->mem[ip + 1];
+                ip += 2;
+            }
+            else
+                if(TOP1 == 3){
+                    operando1 = (vm->mem[ip] << 16) | (vm->mem[ip + 1] << 8) | vm->mem[ip + 2];
+                    ip += 3;
+                }
+                else
+                    operando1 = 0;
+    
+        // Operandos alineados
+        int printed = 0;
+        if(TOP1 == 3){
+            unsigned char codigoRegistro = (operando1 & 0xFF0000) >> 16;
+            unsigned short int offset = operando1 & 0x00FFFF;
+            printf("[%s + %u]", REGISTER_NAMES[codigoRegistro], offset);
+            printed = 1;
+        } else if(TOP1 == 2) {
+            printf("%d", operando1);
+            printed = 1;
+        } else if(TOP1 == 1) {
+            printf("%s", REGISTER_NAMES[operando1]);
+            printed = 1;
+        }
+        if((TOP1 != 0) && (TOP2 != 0)) {
+            printf(", ");
+            printed = 1;
+        }
+        if(TOP2 == 3){
+            unsigned char codigoRegistro = (operando2 & 0xFF0000) >> 16;
+            unsigned short int offset = operando2 & 0x00FFFF;
+            printf("[%s + %u]", REGISTER_NAMES[codigoRegistro], offset);
+            printed = 1;
+        } else if(TOP2 == 2) {
+            printf("%d", operando2);
+            printed = 1;
+        } else if(TOP2 == 1) {
+            printf("%s", REGISTER_NAMES[operando2]);
+            printed = 1;
+        }
+        if(!printed) printf(" ");
+        printf("\n");
+    }
 }
