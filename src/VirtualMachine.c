@@ -29,7 +29,7 @@ void initTSR(TVM *vm, unsigned short int size) {
     vm->tableSeg[1].size = 16384 - cantBytes;
 }
 
-void readFile(TVM *vm, char *fileName) {
+void readFile(TVM *vm, char *fileName, int dFlag) {
     // funcion para leer el vmx
     FILE *arch;  // TODO arreglar con writeMemory
     int i = 0;   // direccion de memoria a guardar el byte
@@ -78,7 +78,7 @@ void readFile(TVM *vm, char *fileName) {
                 vm->mem[i] = c;
                 i++;
             }
-            initVm(vm);
+            initVm(vm, dFlag);
         }
 
         fclose(arch);
@@ -91,10 +91,11 @@ void showCodeSegment(TVM *vm) {
     }
 }
 
-void initVm(TVM *vm) {
+void initVm(TVM *vm, int dFlag) {
     vm->reg[CS] = 0;            // segmento de codigo
     vm->reg[IP] = vm->reg[CS];  // contador de instrucciones apunta al inicio del segmento de codigo
     vm->reg[DS] = 1 << 16;      // segmento de datos
+    vm->dFlag = dFlag;
 }
 
 void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
@@ -137,6 +138,10 @@ void readInstruction(TVM *vm) {
     int TOP1, TOP2;
 
     instruction = vm->mem[vm->reg[IP]];  // leo la instruccion
+    
+    if (vm->dFlag == 1) {
+        printf("[%X]:", vm->reg[IP]);
+    }
     // decodifica la instruccion
     TOP2 = (instruction & maskTOP2) >> 6;
     TOP1 = (instruction & maskTOP1) >> 4;
