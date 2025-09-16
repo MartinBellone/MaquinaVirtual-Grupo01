@@ -17,12 +17,12 @@ int convertToPhysicalAddress(TVM *vm) {
 
     baseSeg = vm->tableSeg[segment].base;
     offSeg = vm->reg[LAR] & 0x0000FFFF;
+    // printf("Base: 0x%X Offset: 0x%X\n", baseSeg, offSeg);
     int result = 0x00000000 | (baseSeg + offSeg);
     if (result > (baseSeg + vm->tableSeg[segment].size - 1)) {  // si la direccion fisica es mayor a la base + size del segmento, error
         printf("Error: Segmentation fault.\n");
         exit(1);
     }
-    printf("Base: 0x%X Offset: 0x%X\n", baseSeg, offSeg);
     return result;
 }
 void readMemory(TVM *vm) {
@@ -30,16 +30,17 @@ void readMemory(TVM *vm) {
     // printf("Physical Address to read: 0x%X\n", physAddr);
     //  tiene que venir el MAR seteado con la cantidad de bytes a leer
     vm->reg[MAR] |= physAddr;
-    int bytesToRead = (vm->reg[MAR] & 0xFF000000) >> 24;
+    unsigned int bytesToRead = (vm->reg[MAR] & 0xFFFF0000) >> 16;
+    // printf("Physical Address to read: 0x%X\n", vm->reg[MAR]);
     vm->reg[MBR] = 0x00000000;  // inicializo MBR en 0
-    printf("Bytes to read: %d\n", bytesToRead);
+    // printf("Bytes to read: %d\n", bytesToRead);
     for (int i = 1; i <= bytesToRead; i++) {
-        printf("Reading from memory address 0x%X: 0x%X\n", vm->reg[MAR] + i - 1, vm->mem[physAddr + i - 1]);
+        // printf("Reading from memory address 0x%X: 0x%X\n", vm->reg[MAR] + i - 1, vm->mem[physAddr + i - 1]);
         vm->reg[MBR] |= (vm->mem[physAddr + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
     }
 
     // vm->reg[MBR] = vm->mem[physAddr];
-    printf("Value read: 0x%X\n", vm->reg[MBR]);
+    // printf("Value read: 0x%X\n", vm->reg[MBR]);
     vm->reg[MBR] = signExtend(vm->reg[MBR], bytesToRead);
 }
 
