@@ -13,7 +13,7 @@
             SYS 1
 
             MOV EEX, [EDX]
-            MOV EBX, 1
+            MOV EBX, 0
 
 ; Leo valores del vector
 INICIO:     CMP EBX, EEX
@@ -34,7 +34,7 @@ INICIO:     CMP EBX, EEX
 ; En la celda EEX (n) * 4 termina el vector
 ; Guarda el maximo en un registro ECX
 
-            MOV ECX, -99999
+            MOV ECX, -1
 
 ; Busco el maximo
 SIGUE:      CMP EBX, EEX

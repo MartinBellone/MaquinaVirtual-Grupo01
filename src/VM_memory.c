@@ -35,7 +35,7 @@ void readMemory(TVM *vm) {
     vm->reg[MBR] = 0x00000000;  // inicializo MBR en 0
     // printf("Bytes to read: %d\n", bytesToRead);
     for (int i = 1; i <= bytesToRead; i++) {
-        // printf("Reading from memory address 0x%X: 0x%X\n", vm->reg[MAR] + i - 1, vm->mem[physAddr + i - 1]);
+        printf("Reading from memory address 0x%X: 0x%X\n", physAddr + i - 1, vm->mem[physAddr + i - 1]);
         vm->reg[MBR] |= (vm->mem[physAddr + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
     }
 

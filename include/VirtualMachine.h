@@ -23,4 +23,4 @@ void executeDisassembly(TVM *vm);
 
 void MOV(TVM *vm, int tipoOp1, int tipoOp2);
 
-#endif // VIRTUAL_MACHINE_H
+#endif  // VIRTUAL_MACHINE_H
