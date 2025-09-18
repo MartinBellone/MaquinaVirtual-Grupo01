@@ -115,6 +115,12 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
                         exit(1);
                     }
                 }
+                if (buffer[0] == '1') {
+                    // Ancho usado = len bits
+                    int shift = 32 - strlen(buffer);
+                    // Extiende signo
+                    value = (int)(value << shift) >> shift;
+                }
                 printf("Valor leido: %d\n", value);
                 vm->reg[MBR] = value;
                 writeMemory(vm);

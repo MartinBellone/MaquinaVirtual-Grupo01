@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "VirtualMachine.h"
 #define LAR 0
@@ -13,24 +14,22 @@ int main(int argc, char *argv[]) {
     //     return 1;
     // }
 
-
-    if(argc == 1){
+    if (argc == 1) {
         printf("No hay ningun archivo para ejecutar.\n");
         return 1;
     }
 
-
     //  Parameters check
     if (argc > 2)
         dFlag = (strcmp(argv[2], "-d") == 0) ? 1 : 0;
-        
+
     // Load a program into memory
     readFile(&vm, argv[1]);
 
     // Mostrar el segmento de código cargado
     // showCodeSegment(&vm);
 
-    if(dFlag)
+    if (dFlag)
         executeDisassembly(&vm);
 
     // Execute the program
