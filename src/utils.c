@@ -15,13 +15,12 @@ const char *MNEMONIC_NAMES[] = {
 
 const char *REGISTER_NAMES[] = {
     "LAR", "MAR", "MBR", "IP", "OPC", "OP1", "OP2",
-    "RESERVADO", "RESERVADO", "RESERVADO", "EAX", 
+    "RESERVADO", "RESERVADO", "RESERVADO", "EAX",
     "EBX", "ECX", "EDX", "EEX", "EFX", "AC", "CC",
     "RESERVADO", "RESERVADO", "RESERVADO", "RESERVADO",
     "RESERVADO", "RESERVADO", "RESERVADO", "RESERVADO",
-    "CS", "DS", "RESERVADO", "RESERVADO", "RESERVADO", 
-    "RESERVADO"
-};
+    "CS", "DS", "RESERVADO", "RESERVADO", "RESERVADO",
+    "RESERVADO"};
 
 void setCC(TVM *vm, int value) {
     if (value < 0)  // N=1
@@ -70,9 +69,10 @@ void setOp(TVM *vm, int registerValue, int value) {
     } else if (type == 0b10) {  // inmediato
         printf("Error: No se puede escribir en un inmediato.\n");
         exit(1);
-    } else if (type == 0b11) {                    // memoria
-        int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
-        int offset = opAux & 0x0000FFFF;          // obtengo el offset
+    } else if (type == 0b11) {                             // memoria
+        unsigned int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
+
+        int offset = opAux & 0x0000FFFF;  // obtengo el offset
         // cargo LAR con el contenido del registro (debera ser un puntero) y offset del operando
         vm->reg[LAR] = vm->reg[registro] + offset;
         vm->reg[MBR] = value;

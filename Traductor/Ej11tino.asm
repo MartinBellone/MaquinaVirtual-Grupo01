@@ -1,0 +1,43 @@
+MOV EDX, DS
+MOV EBX, -1
+sigue: MOV EAX, 1
+LDL ECX, 1
+LDH ECX, 4
+ADD EDX, 4
+ADD EBX, 1
+SYS 1
+MOV [DS], EBX
+CMP [EDX], 0
+JNN sigue
+MOV EAX, 0
+MOV EBX, -1000
+MOV ECX, 0
+otro: CMP EAX, [DS]
+JZ fin
+MOV EDX, EAX
+MUL EDX, 4
+ADD EDX, 4
+ADD EDX, DS
+CMP [EDX], EBX
+JZ aparicion
+JP nuevo_max
+ADD EAX, 1
+JMP otro
+aparicion: ADD ECX, 1
+ADD EAX, 1
+JMP otro
+nuevo_max: MOV EBX, [EDX]
+MOV ECX, 1
+ADD EAX, 1
+JMP otro
+fin: MOV EDX, DS
+ADD EDX, 100
+MOV [EDX], ECX
+LDH ECX, 4
+LDL ECX, 1
+MOV EAX, 1
+SYS 2
+ADD EDX, 4
+MOV [EDX], EBX
+SYS 2
+STOP
