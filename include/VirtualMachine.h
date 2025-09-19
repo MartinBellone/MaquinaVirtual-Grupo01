@@ -7,8 +7,8 @@ typedef struct {
 } TSR;
 
 typedef struct {
-    char mem[16384];  // char mem[16]
-    int reg[32];      // 4 Bytes por cada entero, son 32 registros de 4 bytes cada uno
+    unsigned char mem[16384];  // char mem[16]
+    int reg[32];               // 4 Bytes por cada entero, son 32 registros de 4 bytes cada uno
     TSR tableSeg[8];
     int dFlag;
 } TVM;  // Type virtual machine

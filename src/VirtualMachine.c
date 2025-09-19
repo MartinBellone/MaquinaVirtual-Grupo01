@@ -33,7 +33,7 @@ void readFile(TVM *vm, char *fileName) {
     // funcion para leer el vmx
     FILE *arch;  // TODO arreglar con writeMemory
     int i = 0;   // direccion de memoria a guardar el byte
-    char c, header[6], version;
+    unsigned char c, header[6], version;
     unsigned int codeSize;
 
     arch = fopen(fileName, "rb");
@@ -110,9 +110,11 @@ void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de 
             unsigned int high = vm->mem[vm->reg[IP]];
             unsigned int low = vm->mem[vm->reg[IP] + 1];
             unsigned int imm = (high << 8) | low;
-            // printf("Byte inmediato: %X\n", high);
-            // printf("Byte inmediato sig: %X\n", low);
-            // printf("Inmediato antes de extender signo: %X\n", imm);
+            printf("Byte inmediato: %X\n", high);
+            printf("Byte inmediato sig: %X\n", low);
+            printf("Inmediato antes de extender signo: %X\n", imm);
+            imm = signExtend(imm, 2);
+            printf("Inmediato despues de extender signo: %X\n", imm);
             // Store with type in top byte (0x02)
             vm->reg[numOp] = (0x02 << 24) | (imm & 0x00FFFFFF);
             printf("Inmediato: %X\n", vm->reg[numOp]);
@@ -207,6 +209,7 @@ void executeDisassembly(TVM *vm) {
             ip++;
         } else if (TOP2 == 2) {
             operando2 = (vm->mem[ip] << 8) | vm->mem[ip + 1];
+            operando2 = signExtend(operando2, 2);
             ip += 2;
         } else if (TOP2 == 3) {
             operando2 = (vm->mem[ip] << 16) | (vm->mem[ip + 1] << 8) | vm->mem[ip + 2];
