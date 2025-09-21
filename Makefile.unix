@@ -18,7 +18,7 @@ OBJ = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(filter $(SRC_DIR)/%,$(SRC))) 
       $(patsubst $(MNEM_DIR)/%.c,$(BUILD_DIR)/mnemonics/%.o,$(filter $(MNEM_DIR)/%,$(SRC)))
 
 # Ejecutable final
-TARGET = $(BIN_DIR)/vmx
+TARGET = $(BIN_DIR)/vmxUNIX
 
 # Regla por defecto
 all: $(TARGET)

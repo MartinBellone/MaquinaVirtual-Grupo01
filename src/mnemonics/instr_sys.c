@@ -56,14 +56,11 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
     call = call & 0x000000FF;  // Aislo los 8 bits menos significativos
     int tamanioCelda = (vm->reg[ECX] & 0xFFFF0000) >> 16;
     int cantLecturas = vm->reg[ECX] & 0x0000FFFF;
-    printf("Call: %X Tamanio celda: %X Cantidad lecturas: %X\n", call, tamanioCelda, cantLecturas);
-    printf("EAX: %d \n", vm->reg[EAX]);
     if (vm->reg[EAX] < 0 || vm->reg[EAX] > 0x1F)  //
         exit(1);
     vm->reg[MAR] = tamanioCelda << 16;  // Cargo MAR con la cantidad de bytes a leer
 
     vm->reg[MAR] &= 0xFFFF0000;
-    printf("MAR: %X EDX: %X\n", vm->reg[MAR], vm->reg[EDX]);
     // Valor Bit Formato
     // 0x10 4 1: interpreta binario
     // 0x08 3 1: interpreta hexadecimal
@@ -82,9 +79,9 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
         // Cargo LAR con la direccion de memoria a escribir
         for (int j = 0; j < cantLecturas; j++) {
             vm->reg[LAR] = vm->reg[EDX] + j * tamanioCelda;
-            printf("[%08x]: ", vm->reg[LAR]);
             if (vm->reg[EAX] == 1) {
                 char valor;
+                printf("[%04X]: ", convertToPhysicalAddress(vm));
                 scanf("%d", &valor);
                 vm->reg[MBR] = valor;
                 writeMemory(vm);
@@ -121,7 +118,6 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
                     // Extiende signo
                     value = (int)(value << shift) >> shift;
                 }
-                printf("Valor leido: %d\n", value);
                 vm->reg[MBR] = value;
                 writeMemory(vm);
             } else
@@ -135,8 +131,8 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
             mask = 0b1;
             vm->reg[LAR] = vm->reg[EDX] + j * tamanioCelda;
             vm->reg[MAR] = tamanioCelda << 16;
-            printf("\n[%08x]: ", vm->reg[LAR]);
             readMemory(vm);
+            printf("[%04X]: ", vm->reg[MAR] & 0x0000FFFF);
             for (int i = 0; i < 5; i++) {
                 if (mask & vm->reg[EAX])
                     func[i](vm, tamanioCelda);

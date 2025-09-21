@@ -11,7 +11,6 @@ void ADD(TVM *vm, int tipoOp1, int tipoOp2) {
     value1 = getOp(vm, vm->reg[OP1]);
     value2 = getOp(vm, vm->reg[OP2]);
     value1 += value2;
-    printf("Valor de la suma: %X\n", value1);
     setCC(vm, value1);
     setOp(vm, vm->reg[OP1], value1);
 }
@@ -29,9 +28,7 @@ void MUL(TVM *vm, int tipoOp1, int tipoOp2) {
     int value1, value2;
     value1 = getOp(vm, vm->reg[OP1]);
     value2 = getOp(vm, vm->reg[OP2]);
-    printf("Valor 1: %d Valor 2: %d\n", value1, value2);
     value1 *= value2;
-    printf("Valor de la multiplicacion: %d\n", value1);
     setCC(vm, value1);
     setOp(vm, vm->reg[OP1], value1);
 }

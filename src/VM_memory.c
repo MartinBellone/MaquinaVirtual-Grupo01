@@ -27,34 +27,26 @@ int convertToPhysicalAddress(TVM *vm) {
 }
 void readMemory(TVM *vm) {
     int physAddr = convertToPhysicalAddress(vm);
-    // printf("Physical Address to read: 0x%X\n", physAddr);
     //  tiene que venir el MAR seteado con la cantidad de bytes a leer
     vm->reg[MAR] |= physAddr;
     unsigned int bytesToRead = (vm->reg[MAR] & 0xFFFF0000) >> 16;
-    // printf("Physical Address to read: 0x%X\n", vm->reg[MAR]);
+
     vm->reg[MBR] = 0x00000000;  // inicializo MBR en 0
     // printf("Bytes to read: %d\n", bytesToRead);
-    for (int i = 1; i <= bytesToRead; i++) {
-        printf("Reading from memory address 0x%X: 0x%X\n", physAddr + i - 1, vm->mem[physAddr + i - 1]);
+    for (unsigned int i = 1; i <= bytesToRead; i++) {
         vm->reg[MBR] |= (vm->mem[physAddr + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
     }
 
-    // vm->reg[MBR] = vm->mem[physAddr];
-    // printf("Value read: 0x%X\n", vm->reg[MBR]);
     vm->reg[MBR] = signExtend(vm->reg[MBR], bytesToRead);
 }
 
 void writeMemory(TVM *vm) {
     int physAddr = convertToPhysicalAddress(vm);
-    // printf("Writting...\n");
     //  tiene que venir el MAR seteado con la cantidad de bytes a escribir y el MBR con los datos a escribir
     vm->reg[MAR] |= physAddr;
-    // printf("Physical Address to write: 0x%X\n", vm->reg[MAR]);
     int bytesToWrite = (vm->reg[MAR] & 0xFFFF0000) >> 16;
     int address = (vm->reg[MAR] & 0x0000FFFF);
     for (int i = 0; i < bytesToWrite; i++) {
-        // 0x0004000A
-        // printf("Writing to memory address 0x%X: 0x%X\n", vm->reg[MAR] + i, vm->reg[MBR] >> (8 * (bytesToWrite - i - 1)) & 0xFF);
         vm->mem[address + i] = vm->reg[MBR] >> (8 * (bytesToWrite - i - 1)) & 0xFF;  // escribo byte a byte
     }
 }

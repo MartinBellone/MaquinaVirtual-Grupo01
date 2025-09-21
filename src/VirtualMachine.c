@@ -43,9 +43,8 @@ void readFile(TVM *vm, char *fileName) {
         // Lectura del identificador y version del archivo
         fread(header, sizeof(char), 5, arch);
         header[5] = '\0';  // Asegurarse de que la cadena esté terminada en null
-        printf("Identificador del archivo: %s\n", header);
 
-        if (strcmp(header, "VMX25") != 0) {
+        if (strcmp(header, (unsigned char *)"VMX25") != 0) {
             fprintf(stderr, "ERROR: formato de archivo incorrecto (header %s)\n", header);
             fclose(arch);
             exit(1);
@@ -56,18 +55,14 @@ void readFile(TVM *vm, char *fileName) {
             fclose(arch);
             exit(1);
         }
-        printf("Version de la maquina virtual archivo: %d\n", (int)version);
         unsigned char sizeBytes[2];
         if (fread(sizeBytes, sizeof(char), 2, arch) != 2) {
             fprintf(stderr, "ERROR: no se pudo leer tamaño de código\n");
             fclose(arch);
             exit(1);
         }
-        printf("%X %X\n", sizeBytes[0], sizeBytes[1]);
 
         codeSize = (sizeBytes[0] << 8) | sizeBytes[1];
-
-        printf("Tamanio del segmento de codigo: %u bytes\n", codeSize);
 
         initTSR(vm, codeSize);
 
@@ -110,14 +105,9 @@ void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de 
             unsigned int high = vm->mem[vm->reg[IP]];
             unsigned int low = vm->mem[vm->reg[IP] + 1];
             unsigned int imm = (high << 8) | low;
-            printf("Byte inmediato: %X\n", high);
-            printf("Byte inmediato sig: %X\n", low);
-            printf("Inmediato antes de extender signo: %X\n", imm);
             imm = signExtend(imm, 2);
-            printf("Inmediato despues de extender signo: %X\n", imm);
             // Store with type in top byte (0x02)
             vm->reg[numOp] = (0x02 << 24) | (imm & 0x00FFFFFF);
-            printf("Inmediato: %X\n", vm->reg[numOp]);
             vm->reg[IP] += 2;  // incrementa el contador de instrucciones
         } else {
             if (TOP == 0b11) {                                                                                                // memoria
@@ -148,8 +138,6 @@ void readInstruction(TVM *vm) {
     vm->reg[IP]++;  // se para en el primer byte del segundo operando
     vm->reg[OP1] = 0;
     vm->reg[OP2] = 0;
-    printf("-------------------------------------------------------------------\n");
-    printf("Instruccion: %X\n", instruction);
 
     if (TOP2 != 0 && TOP1 != 0) {  // Hay dos operandos
         readOp(vm, TOP2, OP2);
@@ -162,7 +150,6 @@ void readInstruction(TVM *vm) {
         }
     }
 
-    printf("OPC: %X TOP1: %d TOP2: %d\n OP1: %X OP2: %X\n", vm->reg[OPC], TOP1, TOP2, vm->reg[OP1], vm->reg[OP2]);
     menu(vm, TOP1, TOP2);
 }
 
@@ -182,10 +169,10 @@ void executeDisassembly(TVM *vm) {
     while (ip < vm->tableSeg[0].size) {
         unsigned char instruction;
         int operando1, operando2;
-        int TOP1, TOP2, opc, op1, op2, i;
+        int TOP1, TOP2, opc, i;
 
         instruction = vm->mem[ip];  // leo la instruccion
-        printf("[%04x]  ", ip);
+        printf("[%04X]  ", ip);
         printf("%02X ", instruction);
 
         // decodifica la instruccion
@@ -193,8 +180,6 @@ void executeDisassembly(TVM *vm) {
         TOP1 = (instruction & maskTOP1) >> 4;
         opc = instruction & maskOPC;
         ip++;  // se para en el primer byte del segundo operando
-        op1 = 0;
-        op2 = 0;
 
         int total_bytes = TOP1 + TOP2;
         for (i = 0; i < total_bytes; i++) {

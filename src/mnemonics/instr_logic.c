@@ -45,13 +45,10 @@ void JN(TVM *vm, int tipoOp1, int tipoOp2) {
 void JNZ(TVM *vm, int tipoOp1, int tipoOp2) {
     int direccion = getOp(vm, vm->reg[OP1]);
     unsigned int Z = (vm->reg[CC] & 0x40000000) >> 30;  // Aislo el bit Z
-    printf("Bit Z: %d\n", Z);
-    printf("Direccion: %X\n", direccion);
     // tengo en cuenta solo Z porque si Z=0, N puede ser 0 o 1
     if (Z == 0) {
         vm->reg[IP] &= 0xFFFF0000;
         vm->reg[IP] |= direccion;
-        printf("Salto a: %X\n", vm->reg[IP]);
     }
 }
 

@@ -3,7 +3,7 @@ MOV [DS+4], 3
 MOV [DS+8], 1
 MOV [DS+12], 1
 MOV [DS+16], 1
-MOV [DS+20], 1
+MOV [DS+20], 2
 MOV [DS+24], 1
 MOV [DS+28], 1
 MOV [DS+32], 1

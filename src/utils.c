@@ -31,7 +31,6 @@ void setCC(TVM *vm, int value) {
         vm->reg[CC] |= 1 << 30;
     else  // Z=0
         vm->reg[CC] &= 0xBFFFFFFF;
-    printf("CC: %o\n", vm->reg[CC]);
 }
 
 int signExtend(unsigned int value, int nbytes) {
@@ -50,12 +49,11 @@ int getOp(TVM *vm, int registerValue) {
     } else if (type == 0b11) {
         int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
         int offset = opAux & 0x0000FFFF;
-        printf("Registro: %x Offset: %x\n", registro, offset);  // obtengo el offset
-        vm->reg[LAR] = vm->reg[registro] + offset;              // cargo LAR con segmento de datos y offset del operando
+
+        vm->reg[LAR] = vm->reg[registro] + offset;  // cargo LAR con segmento de datos y offset del operando
         vm->reg[MAR] = 0x00040000;
         // seteamos MAR para leer 4 bytes
         readMemory(vm);
-        printf("Valor leido: %d\n", vm->reg[MBR]);
         return vm->reg[MBR];
     }
     return 0;
@@ -67,7 +65,6 @@ void setOp(TVM *vm, int registerValue, int value) {
     if (type == 0b01) {                             // registro
         vm->reg[opAux] = value;
     } else if (type == 0b10) {  // inmediato
-        printf("Error: No se puede escribir en un inmediato.\n");
         exit(1);
     } else if (type == 0b11) {                             // memoria
         unsigned int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
