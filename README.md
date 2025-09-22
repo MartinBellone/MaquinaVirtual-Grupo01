@@ -16,8 +16,9 @@
 ## ▶️ Pasos para ejecutar
 
 1. Clonar este repositorio.  
-2. Posicionarse dentro de la carpeta del repositorio y abrir una terminal.  
-3. Ejecutar según el sistema operativo:  
+2. Posicionarse dentro de la carpeta del repositorio y abrir una terminal.
+3. Colocar el archivo con extensión .vmx a ejecutar en la misma carpeta (por ejemplo "nombreDeArchivo.vmx").
+4. Ejecutar según el sistema operativo:  
 
    - **💻 Windows**  
      ```bash
