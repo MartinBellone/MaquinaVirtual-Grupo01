@@ -155,8 +155,12 @@ void readInstruction(TVM *vm) {
 
 void executeProgram(TVM *vm) {
     printf("\n----- Ejecucion del programa -----\n");
-    while (1)
+    while (1) {
         readInstruction(vm);
+        if (vm->reg[IP] >= vm->tableSeg[0].size) {
+            exit(0);
+        }
+    }
 }
 
 void executeDisassembly(TVM *vm) {

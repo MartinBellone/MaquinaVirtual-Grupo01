@@ -20,11 +20,17 @@ void muestraDecimal(TVM *vm, int tamanioCelda) {
 }
 
 void muestraCaracter(TVM *vm, int tamanioCelda) {
-    int valor;
-    int mask = 0xFF000000;
-    for (int i = 0; i < tamanioCelda; i++) {
-        valor = vm->reg[MBR] & mask >> (24 - i * 8);
-        printf("%c ", (char)(valor));
+    unsigned int valor;
+    unsigned int mask = 0xFF000000;
+    if (tamanioCelda < 4)
+        mask >>= (8 * (4 - tamanioCelda));
+    // printf("MBR: 0x%08X\n", vm->reg[MBR]);
+    for (unsigned int i = 0; i < tamanioCelda; i++) {
+        valor = (vm->reg[MBR] & mask) >> (8 * (tamanioCelda - 1) - i * 8);
+        if (valor < 32 || valor == 127)
+            printf(". ");
+        else
+            printf("%c ", (char)(valor));
         mask >>= 8;
     }
 }
@@ -32,12 +38,12 @@ void muestraCaracter(TVM *vm, int tamanioCelda) {
 void muestraOctal(TVM *vm, int tamanioCelda) {
     int valor = vm->reg[MBR];
 
-    printf("%o ", valor);
+    printf("0o%o ", valor);
 }
 
 void muestraHexadecimal(TVM *vm, int tamanioCelda) {
     int valor = vm->reg[MBR];
-    printf("%X ", valor);
+    printf("0x%X ", valor);
 }
 
 void muestraBinario(TVM *vm, int tamanioCelda) {
@@ -49,6 +55,7 @@ void muestraBinario(TVM *vm, int tamanioCelda) {
             printf("0");
         }
     }
+    printf(" ");
 }
 
 void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -125,18 +132,18 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
                 exit(1);
         }
     } else if (call == 2) {
-        int mask = 0xFF;
+        unsigned int mask = 0xFF;
         for (int j = 0; j < cantLecturas; j++) {
             // Recorro bit a bit los 5 bits menos significativos del registro EAX
-            mask = 0b1;
             vm->reg[LAR] = vm->reg[EDX] + j * tamanioCelda;
             vm->reg[MAR] = tamanioCelda << 16;
             readMemory(vm);
+            mask = 0b10000;
             printf("[%04X]: ", vm->reg[MAR] & 0x0000FFFF);
-            for (int i = 0; i < 5; i++) {
+            for (int i = 4; i >= 0; i--) {
                 if (mask & vm->reg[EAX])
                     func[i](vm, tamanioCelda);
-                mask <<= 1;
+                mask >>= 1;
             }
             printf("\n");
         }
