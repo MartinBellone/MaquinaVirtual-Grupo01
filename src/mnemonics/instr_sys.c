@@ -28,11 +28,12 @@ void muestraCaracter(TVM *vm, int tamanioCelda) {
     for (unsigned int i = 0; i < tamanioCelda; i++) {
         valor = (vm->reg[MBR] & mask) >> (8 * (tamanioCelda - 1) - i * 8);
         if (valor < 32 || valor == 127)
-            printf(". ");
+            printf(".");
         else
-            printf("%c ", (char)(valor));
+            printf("%c", (char)(valor));
         mask >>= 8;
     }
+    printf(" ");
 }
 
 void muestraOctal(TVM *vm, int tamanioCelda) {
@@ -48,6 +49,7 @@ void muestraHexadecimal(TVM *vm, int tamanioCelda) {
 
 void muestraBinario(TVM *vm, int tamanioCelda) {
     int valor = vm->reg[MBR];
+    printf("0b");
     for (int i = tamanioCelda * 8 - 1; i >= 0; i--) {
         if (valor & (1u << i)) {
             printf("1");
@@ -139,6 +141,7 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
             vm->reg[MAR] = tamanioCelda << 16;
             readMemory(vm);
             mask = 0b10000;
+
             printf("[%04X]: ", vm->reg[MAR] & 0x0000FFFF);
             for (int i = 4; i >= 0; i--) {
                 if (mask & vm->reg[EAX])
@@ -152,7 +155,7 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
 }
 
 void STOP(TVM *vm, int tipoOp1, int tipoOp2) {
-    exit(0);
+    vm->reg[IP] = 0xFFFFFFFF;  // Pongo IP en una direccion invalida para que no siga ejecutando
 }
 void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
     printf("Error: Invalid Mnemonic Code");

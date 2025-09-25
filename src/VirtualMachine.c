@@ -138,7 +138,6 @@ void readInstruction(TVM *vm) {
     vm->reg[IP]++;  // se para en el primer byte del segundo operando
     vm->reg[OP1] = 0;
     vm->reg[OP2] = 0;
-
     if (TOP2 != 0 && TOP1 != 0) {  // Hay dos operandos
         readOp(vm, TOP2, OP2);
         readOp(vm, TOP1, OP1);
@@ -156,10 +155,14 @@ void readInstruction(TVM *vm) {
 void executeProgram(TVM *vm) {
     printf("\n----- Ejecucion del programa -----\n");
     while (1) {
-        readInstruction(vm);
         if (vm->reg[IP] >= vm->tableSeg[0].size) {
-            exit(0);
+            printf("Error: Segmentation fault.\n");
+            exit(1);
+        } else {
+            if (vm->reg[IP] == -1)  // instruccion STOP
+                exit(0);
         }
+        readInstruction(vm);
     }
 }
 

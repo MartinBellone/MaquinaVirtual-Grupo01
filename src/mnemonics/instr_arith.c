@@ -64,10 +64,11 @@ void SHL(TVM *vm, int tipoOp1, int tipoOp2) {
 }
 
 void SHR(TVM *vm, int tipoOp1, int tipoOp2) {
-    int value1, value2, mascara = 0xFFFFFFFF;
+    int value1, value2;
     value1 = getOp(vm, vm->reg[OP1]);
     value2 = getOp(vm, vm->reg[OP2]);
-    value1 &= ~(mascara << (32 - value2));
+    // value1 &= ~(mascara << (32 - value2));
+    value1 = (int)((unsigned int)value1 >> value2);
     /*
 
         Ej:

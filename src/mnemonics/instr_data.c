@@ -12,9 +12,11 @@ void MOV(TVM *vm, int tipoOp1, int tipoOp2) {
     setOp(vm, vm->reg[OP1], value2);
 }
 void SWAP(TVM *vm, int tipoOp1, int tipoOp2) {
-    int aux = getOp(vm, OP2);
-    setOp(vm, OP2, OP1);
-    setOp(vm, OP1, aux);
+    int aux = getOp(vm, vm->reg[OP2]);
+    setOp(vm, vm->reg[OP2], getOp(vm, vm->reg[OP1]));
+    setOp(vm, vm->reg[OP1], aux);
+
+    // printf("SWAP: OP1= %d, OP2= %d\n", getOp(vm, OP1), getOp(vm, OP2));
 }
 
 void LDL(TVM *vm, int tipoOp1, int tipoOp2) {
@@ -22,7 +24,8 @@ void LDL(TVM *vm, int tipoOp1, int tipoOp2) {
     value1 = getOp(vm, vm->reg[OP1]);
     value2 = getOp(vm, vm->reg[OP2]);
     value1 &= mask;
-    value1 |= value2;
+    value1 |= value2 & 0x0000FFFF;
+    // value1 |= value2;
     setOp(vm, vm->reg[OP1], value1);
 }
 
