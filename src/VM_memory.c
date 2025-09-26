@@ -48,7 +48,6 @@ void writeMemory(TVM *vm) {
     unsigned int bytesToWrite = (vm->reg[MAR] & 0xFFFF0000) >> 16;
     int address = (vm->reg[MAR] & 0x0000FFFF);
     for (unsigned int i = 0; i < bytesToWrite; i++) {
-        // printf("Writing to memory address 0x%X: 0x%X\n", vm->reg[MAR] + i, vm->reg[MBR] >> (8 * (bytesToWrite - i - 1)) & 0xFF);
         vm->mem[address + i] = vm->reg[MBR] >> (8 * (bytesToWrite - i - 1)) & 0xFF;  // escribo byte a byte
     }
 }

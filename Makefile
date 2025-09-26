@@ -34,20 +34,19 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 $(BUILD_DIR)/mnemonics/%.o: $(MNEM_DIR)/%.c | $(BUILD_DIR)/mnemonics
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Crear carpetas si no existen
+# Crear carpetas si no existen (MSYS2/MinGW usa comandos tipo Unix)
 $(BUILD_DIR):
-	if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)
 
 $(BUILD_DIR)/mnemonics:
-	if not exist $(BUILD_DIR)\mnemonics mkdir $(BUILD_DIR)\mnemonics
+	mkdir -p $(BUILD_DIR)/mnemonics
 
 $(BIN_DIR):
-	if not exist $(BIN_DIR) mkdir $(BIN_DIR)
+	mkdir -p $(BIN_DIR)
 
 # Limpieza
 clean:
-	if exist $(BUILD_DIR) rmdir /S /Q $(BUILD_DIR)
-	if exist $(BIN_DIR) rmdir /S /Q $(BIN_DIR)
+	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
 # Phony targets (no generan archivos con esos nombres)
 .PHONY: all clean

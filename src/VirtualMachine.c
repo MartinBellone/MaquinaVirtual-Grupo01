@@ -156,8 +156,7 @@ void executeProgram(TVM *vm) {
     printf("\n----- Ejecucion del programa -----\n");
     while (1) {
         if (vm->reg[IP] >= vm->tableSeg[0].size) {
-            printf("Error: Segmentation fault.\n");
-            exit(1);
+            exit(0);
         } else {
             if (vm->reg[IP] == -1)  // instruccion STOP
                 exit(0);
@@ -226,7 +225,10 @@ void executeDisassembly(TVM *vm) {
         if (TOP1 == 3) {
             unsigned char codigoRegistro = (operando1 & 0xFF0000) >> 16;
             unsigned short int offset = operando1 & 0x00FFFF;
-            printf("[%s + %u]", REGISTER_NAMES[codigoRegistro], offset);
+            if (offset == 0)
+                printf("[%s]", REGISTER_NAMES[codigoRegistro]);
+            else
+                printf("[%s + %u]", REGISTER_NAMES[codigoRegistro], offset);
             printed = 1;
         } else if (TOP1 == 2) {
             printf("%d", operando1);
@@ -242,7 +244,10 @@ void executeDisassembly(TVM *vm) {
         if (TOP2 == 3) {
             unsigned char codigoRegistro = (operando2 & 0xFF0000) >> 16;
             unsigned short int offset = operando2 & 0x00FFFF;
-            printf("[%s + %u]", REGISTER_NAMES[codigoRegistro], offset);
+            if (offset == 0)
+                printf("[%s]", REGISTER_NAMES[codigoRegistro]);
+            else
+                printf("[%s + %u]", REGISTER_NAMES[codigoRegistro], offset);
             printed = 1;
         } else if (TOP2 == 2) {
             printf("%d", operando2);

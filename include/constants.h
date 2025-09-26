@@ -10,7 +10,7 @@
 #define ECX 12  // C
 #define EDX 13  // D
 #define EEX 14  // E
-#define EFP 15  // F
+#define EFX 15  // F
 #define AC 16   // 1F
 #define CC 17   // 2F
 #define CS 26

@@ -27,7 +27,7 @@ void muestraCaracter(TVM *vm, int tamanioCelda) {
     // printf("MBR: 0x%08X\n", vm->reg[MBR]);
     for (unsigned int i = 0; i < tamanioCelda; i++) {
         valor = (vm->reg[MBR] & mask) >> (8 * (tamanioCelda - 1) - i * 8);
-        if (valor < 32 || valor == 127)
+        if (valor < 32 || valor >= 127)
             printf(".");
         else
             printf("%c", (char)(valor));
@@ -88,6 +88,8 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
         // Cargo LAR con la direccion de memoria a escribir
         for (int j = 0; j < cantLecturas; j++) {
             vm->reg[LAR] = vm->reg[EDX] + j * tamanioCelda;
+            vm->reg[MAR] = tamanioCelda << 16;
+
             if (vm->reg[EAX] == 1) {
                 char valor;
                 printf("[%04X]: ", convertToPhysicalAddress(vm));
