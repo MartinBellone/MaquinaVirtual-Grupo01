@@ -43,15 +43,30 @@ int getOp(TVM *vm, int registerValue) {
     int opAux = registerValue & 0x00FFFFFF;         // obtengo el operando sin el tipo
 
     if (type == 0b01) {  // registro
-        return vm->reg[opAux];
+        unsigned int sectRegister = (opAux & 0x000000C0) >> 6;
+        unsigned int registro = opAux & 0x0000001F;
+        if (sectRegister == 0)
+            return vm->reg[registro];
+        else if (sectRegister == 1)
+            return vm->reg[registro] & 0x000000FF;
+        else if (sectRegister == 2)
+            return vm->reg[registro] & 0x0000FF00;
+        else
+            return vm->reg[registro] & 0x0000FFFF;
     } else if (type == 0b10) {     // inmediato
         return (opAux << 8) >> 8;  // extiendo el signo
     } else if (type == 0b11) {
         int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
         int offset = opAux & 0x0000FFFF;
-
+        unsigned int size = (opAux & 0xC00000) >> 22;
         vm->reg[LAR] = vm->reg[registro] + offset;  // cargo LAR con segmento de datos y offset del operando
-        vm->reg[MAR] = 0x00040000;
+
+        if (size == 0)
+            vm->reg[MAR] = 0x00040000;
+        else if (size == 2)
+            vm->reg[MAR] = 0x00020000;
+        else
+            vm->reg[MAR] = 0x00010000;
         // seteamos MAR para leer 4 bytes
         readMemory(vm);
         return vm->reg[MBR];
@@ -63,17 +78,31 @@ void setOp(TVM *vm, int registerValue, int value) {
     int type = (registerValue & 0xFF000000) >> 24;  // obtengo el tipo de operando
     int opAux = registerValue & mask;               // obtengo el operando sin el tipo
     if (type == 0b01) {                             // registro
-        vm->reg[opAux] = value;
+        unsigned int sectRegister = (opAux & 0x000000C0) >> 6;
+        unsigned int registro = opAux & 0x0000001F;
+        if (sectRegister == 0)
+            vm->reg[registro] = value;
+        else if (sectRegister == 1)
+            vm->reg[registro] = (vm->reg[registro] & 0x000000FF) | (value & 0x000000FF);
+        else if (sectRegister == 2)
+            vm->reg[registro] = (vm->reg[registro] & 0x0000FF00) | (value & 0x0000FF00);
+        else
+            vm->reg[registro] = (vm->reg[registro] & 0x0000FFFF) | (value & 0x0000FFFF);
     } else if (type == 0b10) {  // inmediato
         exit(1);
     } else if (type == 0b11) {                             // memoria
         unsigned int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
-
+        unsigned int size = (opAux & 0xC00000) >> 22;
         int offset = opAux & 0x0000FFFF;  // obtengo el offset
         // cargo LAR con el contenido del registro (debera ser un puntero) y offset del operando
         vm->reg[LAR] = vm->reg[registro] + offset;
         vm->reg[MBR] = value;
-        vm->reg[MAR] = 0x00040000;
+        if (size == 0)
+            vm->reg[MAR] = 0x00040000;
+        else if (size == 2)
+            vm->reg[MAR] = 0x00020000;
+        else
+            vm->reg[MAR] = 0x00010000;
         writeMemory(vm);
     }
 }
