@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
     parseArgs(argc, argv, &params);
 
     vm.argc = params.argc;
-    loadParamSegment(&vm, &params);
+    buildParamSegment(&vm, &params);
 
     // Load a program into memory
     readFile(&vm, params.vmxFile);
