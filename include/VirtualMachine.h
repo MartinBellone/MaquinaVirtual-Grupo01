@@ -7,10 +7,20 @@ typedef struct {
 } TSR;
 
 typedef struct {
+    char *vmxFile;
+    char *vmiFile;
+    int memSize;
+    int disassembly;
+    int argc;
+    char **argv;
+} VMParams;
+
+typedef struct {
     unsigned char mem[16384];  // char mem[16]
     int reg[32];               // 4 Bytes por cada entero, son 32 registros de 4 bytes cada uno
     TSR tableSeg[8];
-    int dFlag;
+    int argc;
+    char **argv;
 } TVM;  // Type virtual machine
 
 void readFile(TVM *vm, char *fileName);  // Funcion para leer el archivo vmx
@@ -20,7 +30,8 @@ void readOp(TVM *vm, int TOP, int numOp);
 void showCodeSegment(TVM *vm);
 void executeProgram(TVM *vm);
 void executeDisassembly(TVM *vm);
-
+void parseArgs(int argc, char *argv[], VMParams *args);
+void buildParamSegment(TVM *vm, VMParams *params);
 void MOV(TVM *vm, int tipoOp1, int tipoOp2);
 
 #endif  // VIRTUAL_MACHINE_H

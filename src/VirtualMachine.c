@@ -21,21 +21,114 @@ void menu(TVM *vm, int tipoOp1, int tipoOp2) {
     func[vm->reg[OPC]](vm, tipoOp1, tipoOp2);
 }
 
-void initTSR(TVM *vm, unsigned short int size) {
-    vm->tableSeg[0].base = 0;
-    vm->tableSeg[0].size = size;
-    vm->tableSeg[1].base = size;
-    int cantBytes = size;
-    vm->tableSeg[1].size = 16384 - cantBytes;
+void initTSR(TVM *vm, unsigned short int sizes[6], unsigned short int cantSegments) {
+    for (int i = 0; i + 1 < cantSegments; i++) {  // setea todos los segmentos menos el ultimo
+        if (sizes[i] == 0) {
+            vm->tableSeg[i].size = sizes[i + 1];
+            if (i == 0)
+                vm->tableSeg[i].base = 0;
+            else
+                vm->tableSeg[i].base = vm->tableSeg[i - 1].base + vm->tableSeg[i - 1].size;
+        } else {
+            vm->tableSeg[i].size = sizes[i];
+            if (i == 0)
+                vm->tableSeg[i].base = 0;
+            else
+                vm->tableSeg[i].base = vm->tableSeg[i - 1].base + vm->tableSeg[i - 1].size;
+        }
+    }
+    // setea el ultimo segmento
+    vm->tableSeg[cantSegments - 1].size = sizes[cantSegments - 1];
+    vm->tableSeg[cantSegments - 1].base = vm->tableSeg[cantSegments - 2].base + vm->tableSeg[cantSegments - 2].size;
+}
+
+void parseArgs(int argc, char *argv[], VMParams *args) {
+    args->vmxFile = NULL;
+    args->vmiFile = NULL;
+    args->memSize = 64 * 1024;  // default 64KiB
+    args->disassembly = 0;
+    args->argc = 0;
+
+    for (int i = 1; i < argc; i++) {
+        if (strstr(argv[i], ".vmx")) {
+            args->vmxFile = argv[i];
+        } else if (strstr(argv[i], ".vmi")) {
+            args->vmiFile = argv[i];
+        } else if (strncmp(argv[i], "m=", 2) == 0) {
+            args->memSize = atoi(argv[i] + 2) * 1024;  // m=64 → 64KiB
+        } else if (strcmp(argv[i], "-d") == 0) {
+            args->disassembly = 1;
+        } else if (strcmp(argv[i], "-p") == 0) {
+            // todo lo que sigue son parámetros del programa
+            // este argv no se pasa a la VM, es un array que luego sera el param segment
+            for (int j = i + 1; j < argc; j++) {
+                args->argv[args->argc++] = argv[j];
+            }
+            break;
+        } else {
+            printf("Argumento desconocido: %s\n", argv[i]);
+        }
+    }
+    // mostrar param segment
+    for (int i = 0; i < args->argc; i++) {
+        printf("argv[%d]: %s\n", i, args->argv[i]);
+    }
+
+    if (!args->vmxFile) {
+        fprintf(stderr, "ERROR: No se especificó archivo .vmx\n");
+        exit(1);
+    }
+}
+void buildParamSegment(TVM *vm, VMParams *args) {
+    unsigned int base = 0;  // El segmento de parámetros siempre inicia en 0
+    unsigned int offset = 0;
+    unsigned int ptrs[args->argc + 1];  // direcciones de cada string
+
+    if (args->argc == 0) {
+        // No hay parámetros → solo colocar -1
+        unsigned int endMarker = 0xFFFFFFFF;
+        // memcpy(&vm->mem[offset], &endMarker, sizeof(int));
+        vm->tableSeg[0].base = base;
+        vm->tableSeg[0].size = sizeof(int);
+        vm->reg[PS] = -1;
+        return;
+    }
+
+    // Copiar los strings uno detrás del otro
+    for (int i = 0; i < args->argc; i++) {
+        ptrs[i] = offset;                     // dirección del inicio del string i
+        int len = strlen(args->argv[i]) + 1;  // incluye el '\0'
+        memcpy(&vm->mem[offset], args->argv[i], len);
+        offset += len;
+    }
+
+    // Agregar marcador de fin de punteros (-1)
+    ptrs[args->argc] = 0xFFFFFFFF;
+
+    // Copiar los punteros al final de la sección de strings
+    vm->argv = offset;  // dirección del inicio del arreglo de punteros
+    for (int i = 0; i <= args->argc; i++) {
+        memcpy(&vm->mem[offset], &ptrs[i], sizeof(int));
+        offset += sizeof(int);
+    }
+
+    // Configurar el segmento en la tabla
+    vm->tableSeg[0].base = base;
+    vm->tableSeg[0].size = offset;
+
+    // Registrar el segmento PS
+    vm->reg[PS] = base;
+
+    // return offset - (args->argc + 1) * sizeof(int);
 }
 
 void readFile(TVM *vm, char *fileName) {
     // funcion para leer el vmx
-    FILE *arch;  // TODO arreglar con writeMemory
-    int i = 0;   // direccion de memoria a guardar el byte
+    FILE *arch;
+    int i = 0;  // direccion de memoria a guardar el byte
     unsigned char c, header[6], version;
-    unsigned int codeSize;
-
+    unsigned int CSsize;
+    unsigned short int sizes[6] = {0};  // tamanos de los segmentos
     arch = fopen(fileName, "rb");
     if (arch == NULL)
         printf("ERROR al abrir el archivo \"%s\"\n", fileName);
@@ -50,21 +143,75 @@ void readFile(TVM *vm, char *fileName) {
             exit(1);
         }
         fread(&version, sizeof(char), 1, arch);
-        if (version != 1) {
-            fprintf(stderr, "ERROR: versión no soportada (%d)\n", version);
-            fclose(arch);
-            exit(1);
-        }
-        unsigned char sizeBytes[2];
-        if (fread(sizeBytes, sizeof(char), 2, arch) != 2) {
+        unsigned char CSsizeBytes[2];
+        if (fread(CSsizeBytes, sizeof(char), 2, arch) != 2) {
             fprintf(stderr, "ERROR: no se pudo leer tamaño de código\n");
             fclose(arch);
             exit(1);
         }
+        CSsize = (CSsizeBytes[0] << 8) | CSsizeBytes[1];
+        if (version == 0x01) {
+            sizes[0] = CSsize;  // CS
+            sizes[1] = 16384 - CSsize;
+            initTSR(vm, sizes, 2);
+        } else if (version == 0x02) {
+            unsigned char DSsizeBytes[2];
+            if (fread(DSsizeBytes, sizeof(char), 2, arch) != 2) {
+                fprintf(stderr, "ERROR: no se pudo leer tamaño de segmento de datos\n");
+                fclose(arch);
+                exit(1);
+            }
+            unsigned int DSsize = (DSsizeBytes[0] << 8) | DSsizeBytes[1];
 
-        codeSize = (sizeBytes[0] << 8) | sizeBytes[1];
+            unsigned char ESsizeBytes[2];
+            if (fread(ESsizeBytes, sizeof(char), 2, arch) != 2) {
+                fprintf(stderr, "ERROR: no se pudo leer tamaño de segmento extra\n");
+                fclose(arch);
+                exit(1);
+            }
+            unsigned int ESsize = (ESsizeBytes[0] << 8) | ESsizeBytes[1];
+            unsigned char SSsizeBytes[2];
+            if (fread(SSsizeBytes, sizeof(char), 2, arch) != 2) {
+                fprintf(stderr, "ERROR: no se pudo leer tamaño de segmento de stack\n");
+                fclose(arch);
+                exit(1);
+            }
+            unsigned int SSsize = (SSsizeBytes[0] << 8) | SSsizeBytes[1];
 
-        initTSR(vm, codeSize);
+            unsigned char KSsizeBytes[2];
+            if (fread(KSsizeBytes, sizeof(char), 2, arch) != 2) {
+                fprintf(stderr, "ERROR: no se pudo leer tamaño de segmento de constantes \n");
+                fclose(arch);
+                exit(1);
+            }
+            unsigned int KSsize = (KSsizeBytes[0] << 8) | KSsizeBytes[1];
+
+            if (CSsize + DSsize + ESsize + SSsize + KSsize > 16384) {
+                printf("Error: El programa es demasiado grande para la memoria asignada.\n");
+                fclose(arch);
+                exit(1);
+            }
+            unsigned char entryPointBytes[2];
+            if (fread(entryPointBytes, sizeof(char), 2, arch) != 2) {
+                fprintf(stderr, "ERROR: no se pudo leer el entry point\n");
+                fclose(arch);
+                exit(1);
+            }
+            unsigned int entryPoint = (entryPointBytes[0] << 8) | entryPointBytes[1];
+
+            sizes[0] = vm->tableSeg[0].size;  // PS
+            sizes[1] = KSsize;                // KS
+            sizes[2] = CSsize;                // CS
+            sizes[3] = DSsize;                // DS
+            sizes[4] = ESsize;                // ES
+            sizes[5] = SSsize;                // SS
+            initTSR(vm, sizes, 6);
+
+        } else {
+            fprintf(stderr, "ERROR: versión de archivo incorrecta (%d)\n", version);
+            fclose(arch);
+            exit(1);
+        }
 
         if (vm->tableSeg[1].size <= 0) {  // si se supera el tamaño del segmento de codigo, salir
             printf("Error: El programa es demasiado grande para la memoria asignada.\n");
@@ -88,6 +235,11 @@ void showCodeSegment(TVM *vm) {
 }
 
 void initVm(TVM *vm) {
+    if (vm->reg[PS] == -1) {
+        vm->reg[PS] = 0;  // segmento de parametros
+    } else {
+        vm->reg[CS] = 0;  // segmento de codigo
+    }
     vm->reg[CS] = 0;            // segmento de codigo
     vm->reg[IP] = vm->reg[CS];  // contador de instrucciones apunta al inicio del segmento de codigo
     vm->reg[DS] = 1 << 16;      // segmento de datos

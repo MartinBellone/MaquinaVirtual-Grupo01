@@ -3,33 +3,22 @@
 #include <string.h>
 
 #include "VirtualMachine.h"
-#define LAR 0
-#define MAR 1
-#define MBR 2
+
 int main(int argc, char *argv[]) {
     TVM vm;
-    int dFlag;
-    // if (vm == NULL) {
-    //     fprintf(stderr, "Error allocating memory for virtual machine.\n");
-    //     return 1;
-    // }
+    VMParams params;
+    parseArgs(argc, argv, &params);
 
-    if (argc == 1) {
-        printf("No hay ningun archivo para ejecutar.\n");
-        return 1;
-    }
-
-    //  Parameters check
-    if (argc > 2)
-        dFlag = (strcmp(argv[2], "-d") == 0) ? 1 : 0;
+    vm.argc = params.argc;
+    loadParamSegment(&vm, &params);
 
     // Load a program into memory
-    readFile(&vm, argv[1]);
+    readFile(&vm, params.vmxFile);
 
     // Mostrar el segmento de código cargado
     // showCodeSegment(&vm);
 
-    if (dFlag)
+    if (params.disassembly)
         executeDisassembly(&vm);
 
     // Execute the program
