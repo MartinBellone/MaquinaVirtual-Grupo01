@@ -57,13 +57,18 @@ int getOp(TVM *vm, int registerValue) {
         return (opAux << 8) >> 8;  // extiendo el signo
     } else if (type == 0b11) {
         int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
-        int offset = opAux & 0x0000FFFF;
-        unsigned int size = (opAux & 0xC00000) >> 22;
-        vm->reg[LAR] = vm->reg[registro] + offset;  // cargo LAR con segmento de datos y offset del operando
+        int offset = opAux & 0x0000FFFF;          // en [EDX + 4] el offset es 4
+        unsigned int cellSize = (opAux & 0xC00000) >> 22;
+        unsigned int oldSegment = vm->reg[registro] >> 16;
+        vm->reg[LAR] = vm->reg[registro] + offset;  // cargo LAR con el segmento y offset del operando
+        if (vm->reg[LAR] >> 16 != oldSegment) {     // verifico si sumando me pase del segmento
+            printf("Error: Segmentation fault\n");
+            exit(1);
+        }
 
-        if (size == 0)
+        if (cellSize == 0)
             vm->reg[MAR] = 0x00040000;
-        else if (size == 2)
+        else if (cellSize == 2)
             vm->reg[MAR] = 0x00020000;
         else
             vm->reg[MAR] = 0x00010000;
@@ -92,14 +97,18 @@ void setOp(TVM *vm, int registerValue, int value) {
         exit(1);
     } else if (type == 0b11) {                             // memoria
         unsigned int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
-        unsigned int size = (opAux & 0xC00000) >> 22;
+        unsigned int cellSize = (opAux & 0xC00000) >> 22;
         int offset = opAux & 0x0000FFFF;  // obtengo el offset
-        // cargo LAR con el contenido del registro (debera ser un puntero) y offset del operando
-        vm->reg[LAR] = vm->reg[registro] + offset;
+        unsigned int oldSegment = vm->reg[registro] >> 16;
+        vm->reg[LAR] = vm->reg[registro] + offset;  // cargo LAR con el segmento y offset del operando
+        if (vm->reg[LAR] >> 16 != oldSegment) {     // verifico si sumando me pase del segmento
+            printf("Error: Segmentation fault\n");
+            exit(1);
+        }
         vm->reg[MBR] = value;
-        if (size == 0)
+        if (cellSize == 0)
             vm->reg[MAR] = 0x00040000;
-        else if (size == 2)
+        else if (cellSize == 2)
             vm->reg[MAR] = 0x00020000;
         else
             vm->reg[MAR] = 0x00010000;
