@@ -260,6 +260,88 @@ void readFile(TVM *vm, char *fileName)
     }
 }
 
+void readFileVMI(TVM *vm, char *fileName){
+    FILE *arch;
+    unsigned char header[6], version;
+    unsigned int dato; // 4 bytes por registro
+    unsigned short int base, size, tamanioMem;
+
+    if(arch == NULL)
+        printf("ERROR al abrir el archivo %s : ", fileName);
+    else{
+        fread(header, sizeof(char), 5, arch);
+        header[5] = '\0'; // Asegurarse de que la cadena esté terminada en null
+
+        if (strcmp(header, (unsigned char *)"VMI25") != 0)
+        {
+            printf("ERROR: formato de archivo incorrecto (header %s)\n", header);
+            exit(1);
+        }
+
+        fread(&version, sizeof(char), 1, arch);
+
+        if (version != 0x01)
+        {
+            printf("ERROR: versión de archivo incorrecta (%d)\n", version);
+            exit(1);
+        }
+
+        fread(&tamanioMem, sizeof(tamanioMem), 1, arch);
+
+        int i;
+        for(i = 0; i < 32; i++){
+            if(fread(&dato, sizeof(int), 1, arch) != 1){
+                printf("ERROR: no se pudo leer el registro %d\n", i);
+                exit(1);
+            }
+            vm->reg[i] = dato;
+        }
+
+        tamanioMem = 0;
+        for(i = 0; i < 8; i++){
+            if(fread(&base, sizeof(base), 1, arch) != 1){
+                printf("ERROR: no se pudo leer el segmento %d\n", i);
+                exit(1);
+            }
+            if(fread(&size, sizeof(size), 1, arch) != 1){
+                printf("ERROR: no se pudo leer el tamaño del segmento %d\n", i);
+                exit(1);
+            }
+            vm->tableSeg[i].base = base;
+            vm->tableSeg[i].size = size;
+        }
+
+        vm->mem = malloc(tamanioMem * sizeof(unsigned char));
+    }
+}
+
+void writeFile(TVM *vm, char *fileName)
+{
+    FILE *arch;
+    unsigned char header[6] = "VMI25";
+    unsigned char version = 0x01;
+    if ((arch = fopen(fileName, "wb")) == NULL)
+        printf("ERROR al crear el archivo %s : ", fileName);
+    else
+    {
+        fwrite(header, sizeof(char), 5, arch);
+        fwrite(&version, sizeof(char), 1, arch);
+
+        for (int i = 0; i < 32; i++)
+        {
+            fwrite(&vm->reg[i], sizeof(int), 1, arch);
+        }
+
+        for (int i = 0; i < 8; i++)
+        {
+            fwrite(&vm->tableSeg[i].base, sizeof(unsigned short int), 1, arch);
+            fwrite(&vm->tableSeg[i].size, sizeof(unsigned short int), 1, arch);
+        }
+
+        fclose(arch);
+    }
+}
+
 void showCodeSegment(TVM *vm)
 {
     for (int i = 0; i < vm->tableSeg[0].size; i++)
