@@ -16,15 +16,15 @@ typedef struct {
 } VMParams;
 
 typedef struct {
-    unsigned char mem[16384];  // char mem[16]
-    int reg[32];               // 4 Bytes por cada entero, son 32 registros de 4 bytes cada uno
+    unsigned char *mem;  // char mem[16]
+    int reg[32];         // 4 Bytes por cada entero, son 32 registros de 4 bytes cada uno
     TSR tableSeg[8];
     int argc;
     char **argv;
 } TVM;  // Type virtual machine
 
-void readFile(TVM *vm, char *fileName);  // Funcion para leer el archivo vmx
-void initVm(TVM *vm);                    // Funcion para inicializar la maquina virtual
+void readFileVMX(TVM *vm, char *fileName);                                           // Funcion para leer el archivo vmx
+void initVm(TVM *vm, unsigned short int sizes[6], unsigned short int cantSegments);  // Funcion para inicializar la maquina virtual
 void readInstruction(TVM *vm);
 void readOp(TVM *vm, int TOP, int numOp);
 void showCodeSegment(TVM *vm);
