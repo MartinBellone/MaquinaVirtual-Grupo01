@@ -21,10 +21,10 @@ typedef struct {
     TSR tableSeg[8];
     int argc;
     char **argv;
-} TVM;  // Type virtual machine
-
-void readFileVMX(TVM *vm, char *fileName);                                           // Funcion para leer el archivo vmx
-void initVm(TVM *vm, unsigned short int sizes[6], unsigned short int cantSegments);  // Funcion para inicializar la maquina virtual
+} TVM;                                                                                // Type virtual machine
+void initTSR(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegments);  // Funcion para inicializar la tabla de segmentos
+void readFileVMX(TVM *vm, char *fileName);                                            // Funcion para leer el archivo vmx
+void initVm(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegments);   // Funcion para inicializar la maquina virtual
 void readInstruction(TVM *vm);
 void readOp(TVM *vm, int TOP, int numOp);
 void showCodeSegment(TVM *vm);

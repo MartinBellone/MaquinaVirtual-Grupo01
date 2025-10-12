@@ -21,7 +21,7 @@ void menu(TVM *vm, int tipoOp1, int tipoOp2) {
     func[vm->reg[OPC]](vm, tipoOp1, tipoOp2);
 }
 
-void initTSR(TVM *vm, unsigned short int sizes[6], unsigned short int cantSegments) {
+void initTSR(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegments) {
     int j = 0;  // Indice de escritura en la tabla de segmentos
     for (int i = 0; i < cantSegments; i++) {
         if (sizes[i] != 0) {
@@ -113,7 +113,7 @@ void readFileVMX(TVM *vm, char *fileName) {
     FILE *arch;
     unsigned char c, header[6], version;
     unsigned int CSsize;
-    unsigned short int sizes[6] = {0};  // tamanos de los segmentos
+    unsigned short int sizes[7] = {0};  // tamanos de los segmentos
     arch = fopen(fileName, "rb");
     if (arch == NULL)
         printf("ERROR al abrir el archivo \"%s\"\n", fileName);
@@ -136,6 +136,7 @@ void readFileVMX(TVM *vm, char *fileName) {
         if (version == 0x01) {
             sizes[0] = CSsize;  // CS
             sizes[1] = 16384 - CSsize;
+            sizes[2] = 0;  // el entrypoint es el inicio del CS
             initTSR(vm, sizes, 2);
             initVm(vm, sizes, 2);
         } else if (version == 0x02) {
@@ -185,6 +186,7 @@ void readFileVMX(TVM *vm, char *fileName) {
             sizes[3] = DSsize;                // DS
             sizes[4] = ESsize;                // ES
             sizes[5] = SSsize;                // SS
+            sizes[6] = entryPoint;            // entry point
             initTSR(vm, sizes, 6);
             sizes[0] = CSsize;  // CS
             sizes[1] = DSsize;  // DS
@@ -204,9 +206,20 @@ void readFileVMX(TVM *vm, char *fileName) {
             int i = 0;  // direccion de memoria a guardar el byte
             unsigned int codeSegment = vm->reg[CS] >> 16;
             i = vm->tableSeg[codeSegment].base;
-            while (fread(&c, sizeof(char), 1, arch) == 1) {
+            int cantLecturas = 0;
+            while (fread(&c, sizeof(char), 1, arch) == 1 && cantLecturas < CSsize) {
                 vm->mem[i] = c;
                 i++;
+                cantLecturas++;
+            }
+            unsigned int KSsegment = vm->reg[KS] >> 16;  // el registro KS existe aunque la version sea 1
+            if (version == 2 && vm->tableSeg[KSsegment].size > 0) {
+                // debo inicializar el segmento de constantes
+                i = vm->tableSeg[KSsegment].base;
+                while (fread(&c, sizeof(char), 1, arch) == 1) {
+                    vm->mem[i] = c;
+                    i++;
+                }
             }
         }
         fclose(arch);
@@ -295,7 +308,7 @@ void showCodeSegment(TVM *vm) {
     }
 }
 
-void initVm(TVM *vm, unsigned short int sizes[6], unsigned short int cantSegments) {
+void initVm(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegments) {
     unsigned short int totalSize = 0;
     for (int i = 0; i < cantSegments; i++) {
         if (sizes[i] != 0)
@@ -307,6 +320,8 @@ void initVm(TVM *vm, unsigned short int sizes[6], unsigned short int cantSegment
     vm->mem = (unsigned char *)malloc(totalSize * sizeof(unsigned char));
     vm->reg[SP] = vm->reg[SS] + vm->tableSeg[(vm->reg[SS] >> 16)].size;  // inicializo el stack pointer en el tope del segmento de stack
     vm->reg[SP]++;
+    // inicializo el instruction pointer en la parte alta con con la direccion del CS y en la parte baja con el entry point
+    vm->reg[IP] = vm->reg[CS] | sizes[7];
 }
 
 void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
