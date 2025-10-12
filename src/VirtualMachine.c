@@ -199,27 +199,23 @@ void readFileVMX(TVM *vm, char *fileName) {
             exit(1);
         }
 
-        if (vm->tableSeg[1].size <= 0) {  // si se supera el tamaño del segmento de codigo, salir
-            printf("Error: El programa es demasiado grande para la memoria asignada.\n");
-        } else {
-            // Leer codigo
-            int i = 0;  // direccion de memoria a guardar el byte
-            unsigned int codeSegment = vm->reg[CS] >> 16;
-            i = vm->tableSeg[codeSegment].base;
-            int cantLecturas = 0;
-            while (fread(&c, sizeof(char), 1, arch) == 1 && cantLecturas < CSsize) {
+        // Leer codigo
+        int i = 0;  // direccion de memoria a guardar el byte
+        unsigned int codeSegment = vm->reg[CS] >> 16;
+        i = vm->tableSeg[codeSegment].base;
+        int cantLecturas = 0;
+        while (fread(&c, sizeof(char), 1, arch) == 1 && cantLecturas < CSsize) {
+            vm->mem[i] = c;
+            i++;
+            cantLecturas++;
+        }
+        unsigned int KSsegment = vm->reg[KS] >> 16;  // el registro KS existe aunque la version sea 1
+        if (version == 2 && vm->tableSeg[KSsegment].size > 0) {
+            // debo inicializar el segmento de constantes
+            i = vm->tableSeg[KSsegment].base;
+            while (fread(&c, sizeof(char), 1, arch) == 1) {
                 vm->mem[i] = c;
                 i++;
-                cantLecturas++;
-            }
-            unsigned int KSsegment = vm->reg[KS] >> 16;  // el registro KS existe aunque la version sea 1
-            if (version == 2 && vm->tableSeg[KSsegment].size > 0) {
-                // debo inicializar el segmento de constantes
-                i = vm->tableSeg[KSsegment].base;
-                while (fread(&c, sizeof(char), 1, arch) == 1) {
-                    vm->mem[i] = c;
-                    i++;
-                }
             }
         }
         fclose(arch);
@@ -252,6 +248,8 @@ void readFileVMI(TVM *vm, char *fileName) {
 
         fread(&tamanioMem, sizeof(tamanioMem), 1, arch);
 
+
+        // Lectura de registros
         int i;
         for (i = 0; i < 32; i++) {
             if (fread(&dato, sizeof(int), 1, arch) != 1) {
@@ -261,6 +259,7 @@ void readFileVMI(TVM *vm, char *fileName) {
             vm->reg[i] = dato;
         }
 
+        // Lectura de tabla de segmentos
         tamanioMem = 0;
         for (i = 0; i < 8; i++) {
             if (fread(&base, sizeof(base), 1, arch) != 1) {
@@ -273,9 +272,20 @@ void readFileVMI(TVM *vm, char *fileName) {
             }
             vm->tableSeg[i].base = base;
             vm->tableSeg[i].size = size;
+            tamanioMem += size;
         }
 
         vm->mem = malloc(tamanioMem * sizeof(unsigned char));
+
+        // Lectura de memoria
+        for (i = 0; i < tamanioMem; i++) {
+            if (fread(&dato, sizeof(unsigned char), 1, arch) != 1) {
+                printf("ERROR: no se pudo leer la memoria en la posición %d\n", i);
+                exit(1);
+            }
+            vm->mem[i] = (unsigned char)dato;
+        }
+        fclose(arch);
     }
 }
 
@@ -286,16 +296,26 @@ void writeFile(TVM *vm, char *fileName) {
     if ((arch = fopen(fileName, "wb")) == NULL)
         printf("ERROR al crear el archivo %s : ", fileName);
     else {
+        // Escritura del identificador y version del archivo
         fwrite(header, sizeof(char), 5, arch);
         fwrite(&version, sizeof(char), 1, arch);
 
+        // Escritura de registros
         for (int i = 0; i < 32; i++) {
             fwrite(&vm->reg[i], sizeof(int), 1, arch);
         }
 
+        int tamanioMem = 0;
+        // Escritura de tabla de segmentos
         for (int i = 0; i < 8; i++) {
             fwrite(&vm->tableSeg[i].base, sizeof(unsigned short int), 1, arch);
             fwrite(&vm->tableSeg[i].size, sizeof(unsigned short int), 1, arch);
+            tamanioMem += vm->tableSeg[i].size;
+        }
+
+        // Escritura de memoria
+        for (int i = 0; i < tamanioMem; i++) {
+            fwrite(&vm->mem[i], sizeof(unsigned char), 1, arch);
         }
 
         fclose(arch);
@@ -310,6 +330,7 @@ void showCodeSegment(TVM *vm) {
 
 void initVm(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegments) {
     unsigned short int totalSize = 0;
+    int value;
     for (int i = 0; i < cantSegments; i++) {
         if (sizes[i] != 0)
             vm->reg[26 + i] = i << 16;
@@ -319,9 +340,30 @@ void initVm(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegment
     }
     vm->mem = (unsigned char *)malloc(totalSize * sizeof(unsigned char));
     vm->reg[SP] = vm->reg[SS] + vm->tableSeg[(vm->reg[SS] >> 16)].size;  // inicializo el stack pointer en el tope del segmento de stack
-    vm->reg[SP]++;
     // inicializo el instruction pointer en la parte alta con con la direccion del CS y en la parte baja con el entry point
     vm->reg[IP] = vm->reg[CS] | sizes[7];
+    
+
+    // Inicializo Stack
+    vm->reg[SP] -= 4;
+    value = vm->argv;
+    vm->mem[vm->reg[SP]] = (value >> 24) & 0xFF;       // byte más significativo
+    vm->mem[vm->reg[SP] + 1] = (value >> 16) & 0xFF;   // segundo byte
+    vm->mem[vm->reg[SP] + 2] = (value >> 8) & 0xFF;    // tercer byte
+    vm->mem[vm->reg[SP] + 3] = value & 0xFF;           // byte menos significativo
+
+    vm->reg[SP] -= 4;
+    value = vm->argc;
+    vm->mem[vm->reg[SP]] = (value >> 24) & 0xFF;       // byte más significativo
+    vm->mem[vm->reg[SP] + 1] = (value >> 16) & 0xFF;   // segundo byte
+    vm->mem[vm->reg[SP] + 2] = (value >> 8) & 0xFF;    // tercer byte
+    vm->mem[vm->reg[SP] + 3] = value & 0xFF;           // byte menos significativo
+
+    vm->reg[SP] -= 4;
+    vm->mem[vm->reg[SP]] = 0XFF;
+    vm->mem[vm->reg[SP] + 1] = 0XFF;
+    vm->mem[vm->reg[SP] + 2] = 0XFF;
+    vm->mem[vm->reg[SP] + 3] = 0XFF;  
 }
 
 void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
