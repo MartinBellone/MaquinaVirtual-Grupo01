@@ -136,7 +136,18 @@ void readFileVMX(TVM *vm, char *fileName) {
         if (version == 0x01) {
             sizes[0] = CSsize;  // CS
             sizes[1] = 16384 - CSsize;
-            sizes[2] = 0;  // el entrypoint es el inicio del CS
+            sizes[2] = 0;      // el entrypoint es el inicio del CS
+            vm->reg[PS] = -1;  // no hay segmento de parametros
+            vm->reg[KS] = -1;  // no hay segmento de constantes
+            vm->reg[ES] = -1;  // no hay segmento de datos
+            vm->reg[SS] = -1;  // no hay segmento de stack
+            //             sizes[0] = vm->tableSeg[0].size;  // PS
+            // sizes[1] = KSsize;                // KS
+            // sizes[2] = CSsize;                // CS
+            // sizes[3] = DSsize;                // DS
+            // sizes[4] = ESsize;                // ES
+            // sizes[5] = SSsize;                // SS
+            // sizes[6] = entryPoint;            // entry point
             initTSR(vm, sizes, 2);
             initVm(vm, sizes, 2);
         } else if (version == 0x02) {
@@ -248,7 +259,6 @@ void readFileVMI(TVM *vm, char *fileName) {
 
         fread(&tamanioMem, sizeof(tamanioMem), 1, arch);
 
-
         // Lectura de registros
         int i;
         for (i = 0; i < 32; i++) {
@@ -339,31 +349,38 @@ void initVm(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegment
         totalSize += sizes[i];
     }
     vm->mem = (unsigned char *)malloc(totalSize * sizeof(unsigned char));
-    vm->reg[SP] = vm->reg[SS] + vm->tableSeg[(vm->reg[SS] >> 16)].size;  // inicializo el stack pointer en el tope del segmento de stack
-    // inicializo el instruction pointer en la parte alta con con la direccion del CS y en la parte baja con el entry point
-    vm->reg[IP] = vm->reg[CS] | sizes[7];
-    
+    if (vm->reg[SS] != -1) {
+        vm->reg[SP] = vm->reg[SS] + vm->tableSeg[(vm->reg[SS] >> 16)].size;  // inicializo el stack pointer en el tope del segmento de stack
+        // inicializo el instruction pointer en la parte alta con con la direccion del CS y en la parte baja con el entry point
+        vm->reg[IP] = vm->reg[CS] | sizes[7];
 
-    // Inicializo Stack
-    vm->reg[SP] -= 4;
-    value = vm->argv;
-    vm->mem[vm->reg[SP]] = (value >> 24) & 0xFF;       // byte más significativo
-    vm->mem[vm->reg[SP] + 1] = (value >> 16) & 0xFF;   // segundo byte
-    vm->mem[vm->reg[SP] + 2] = (value >> 8) & 0xFF;    // tercer byte
-    vm->mem[vm->reg[SP] + 3] = value & 0xFF;           // byte menos significativo
+        // Inicializo Stack
+        vm->reg[SP] -= 4;
+        value = vm->argv;
+        vm->reg[LAR] = vm->reg[SP];  // cargo el registro LAR con el stack segment
+        unsigned int physAddr = convertToPhysicalAddress(vm);
+        vm->mem[physAddr] = (value >> 24) & 0xFF;      // byte más significativo
+        vm->mem[physAddr + 1] = (value >> 16) & 0xFF;  // segundo byte
+        vm->mem[physAddr + 2] = (value >> 8) & 0xFF;   // tercer byte
+        vm->mem[physAddr + 3] = value & 0xFF;          // byte menos significativo
 
-    vm->reg[SP] -= 4;
-    value = vm->argc;
-    vm->mem[vm->reg[SP]] = (value >> 24) & 0xFF;       // byte más significativo
-    vm->mem[vm->reg[SP] + 1] = (value >> 16) & 0xFF;   // segundo byte
-    vm->mem[vm->reg[SP] + 2] = (value >> 8) & 0xFF;    // tercer byte
-    vm->mem[vm->reg[SP] + 3] = value & 0xFF;           // byte menos significativo
+        vm->reg[SP] -= 4;
+        value = vm->argc;
+        vm->reg[LAR] = vm->reg[SP];  // cargo el registro LAR con el segmento de parametros
+        unsigned int physAddr = convertToPhysicalAddress(vm);
+        vm->mem[physAddr] = (value >> 24) & 0xFF;      // byte más significativo
+        vm->mem[physAddr + 1] = (value >> 16) & 0xFF;  // segundo byte
+        vm->mem[physAddr + 2] = (value >> 8) & 0xFF;   // tercer byte
+        vm->mem[physAddr + 3] = value & 0xFF;          // byte menos significativo
 
-    vm->reg[SP] -= 4;
-    vm->mem[vm->reg[SP]] = 0XFF;
-    vm->mem[vm->reg[SP] + 1] = 0XFF;
-    vm->mem[vm->reg[SP] + 2] = 0XFF;
-    vm->mem[vm->reg[SP] + 3] = 0XFF;  
+        vm->reg[SP] -= 4;
+        vm->reg[LAR] = vm->reg[SP];  // cargo el registro LAR con el segmento de stack
+        unsigned int physAddr = convertToPhysicalAddress(vm);
+        vm->mem[physAddr] = 0XFF;
+        vm->mem[physAddr + 1] = 0XFF;
+        vm->mem[physAddr + 2] = 0XFF;
+        vm->mem[physAddr + 3] = 0XFF;
+    }
 }
 
 void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
