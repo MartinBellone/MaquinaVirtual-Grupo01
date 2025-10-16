@@ -35,7 +35,7 @@ void initTSR(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegmen
     }
 }
 
-void parseArgs(int argc, char *argv[], VMParams *args) {
+void parseArgs(int argc, char *argv[], VMParams *args, TVM *vm) {
     args->vmxFile = NULL;
     args->vmiFile = NULL;
     args->memSize = 16 * 1024;  // default 16KiB
@@ -70,6 +70,9 @@ void parseArgs(int argc, char *argv[], VMParams *args) {
     if (!args->vmxFile) {
         fprintf(stderr, "ERROR: No se especificó archivo .vmx\n");
         exit(1);
+    }
+    if (args->vmiFile){
+        vm->vmiFile = args->vmiFile;
     }
 }
 void buildParamSegment(TVM *vm, VMParams *args) {

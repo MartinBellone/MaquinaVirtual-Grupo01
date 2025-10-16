@@ -1,6 +1,6 @@
 #include "instr_sys.h"
 #include "utils.h"
-
+#include "VirtualMachine.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -201,12 +201,26 @@ void SYS4(TVM *vm, int tipoOp1, int tipoOp2){
     } while(c != '\0');
 }
 
-void SYS7(TVM *vm, int tipoOp1, int tipoOp2){
-    
+void SYS7(TVM *vm, int sinUso1, int sinUso2){
+    fflush(stdout);
 }
-
-void SYSF(TVM *vm, int tipoOp1, int tipoOp2){
     
+void SYSF(TVM *vm, int sinUso, int SinUso2){
+    writeFile(vm, vm->vmiFile);
+    char c;
+
+    scanf("%c",&c); // Espero a que el usuario presione una tecla para finalizar
+    switch (tolower(c)) {
+    case 'q': exit(0); break; // Salgo del programa
+    case '\n': while (c == '\n'){ // Si el usuario presiona enter, sigo mostrando la ejecucion paso a paso
+                 readInstruction(vm);
+                 scanf("%c",&c);
+               }
+                break;
+    case 'g': // Si el usuario presiona g, sigo la ejecucion normal
+                break;
+    }
+
 }
 
 void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
