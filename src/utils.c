@@ -115,3 +115,8 @@ void setOp(TVM *vm, int registerValue, int value) {
         writeMemory(vm);
     }
 }
+
+void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
+    printf("Error: Invalid Mnemonic Code");
+    exit(1);
+}
