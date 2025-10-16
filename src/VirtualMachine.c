@@ -460,12 +460,32 @@ void executeProgram(TVM *vm) {
 
 void executeDisassembly(TVM *vm) {
     printf("----- Disassembler -----\n");
-    int ip = vm->reg[IP];
+
+    int ip = vm->reg[IP], segmento = ip >> 16, i;
+    ip = ip & 0x0000FFFF;
     int maskOPC = 0b00011111;   // mascara para obtener el codigo de operacion
     int maskTOP1 = 0b00110000;  // mascara para obtener el primer operando
     int maskTOP2 = 0b11000000;  // mascara para obtener el segundo operando
 
-    while (ip < vm->tableSeg[0].size) {
+    if (vm->reg[KS] != -1){
+        i = 0;
+        while(i < vm->tableSeg[vm->reg[KS] >> 16].size) { 
+            printf("[%04X]: ", vm->tableSeg[vm->reg[KS] >> 16].base + i);
+            char c = vm->mem[vm->tableSeg[vm->reg[KS] >> 16].base + i];
+            while (c != 0 && i < vm->tableSeg[vm->reg[KS] >> 16].size) {
+                if (c >= 32 && c <= 126)  // caracteres imprimibles
+                    printf("%c", c);
+                else
+                    printf(".");
+                i++;
+                c = vm->mem[vm->tableSeg[vm->reg[KS] >> 16].base + i];
+            }
+            printf("\n");
+            i++;
+        }
+    }
+
+    while (ip < vm->tableSeg[segmento].size) {
         unsigned char instruction;
         int operando1, operando2;
         int TOP1, TOP2, opc, i;
@@ -490,6 +510,7 @@ void executeDisassembly(TVM *vm) {
         printf("  |  %-8s ", MNEMONIC_NAMES[opc]);
 
         if (TOP2 == 1) {
+            //TODO actualizar a nueva version   
             operando2 = vm->mem[ip];
             ip++;
         } else if (TOP2 == 2) {
@@ -517,6 +538,7 @@ void executeDisassembly(TVM *vm) {
         // Operandos alineados
         int printed = 0;
         if (TOP1 == 3) {
+            unsigned char operandoMemoria = (operando1 & 0xFF000000) >> 24;
             unsigned char codigoRegistro = (operando1 & 0xFF0000) >> 16;
             unsigned short int offset = operando1 & 0x00FFFF;
             if (offset == 0)
@@ -538,6 +560,7 @@ void executeDisassembly(TVM *vm) {
         if (TOP2 == 3) {
             unsigned char codigoRegistro = (operando2 & 0xFF0000) >> 16;
             unsigned short int offset = operando2 & 0x00FFFF;
+
             if (offset == 0)
                 printf("[%s]", REGISTER_NAMES[codigoRegistro]);
             else
