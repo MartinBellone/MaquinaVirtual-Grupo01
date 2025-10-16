@@ -148,7 +148,7 @@ void SYS2(TVM *vm, int cantLecturas, int tamanioCelda){
 
 void SYS3(TVM *vm, int cantMaximaCaracteres, int tamanioCelda){
     unsigned char *cadena;
-    int i, segmento, tamanioSegmento;
+    unsigned int i, segmento, tamanioSegmento;
     segmento = vm->reg[EDX] >> 16;
     tamanioSegmento = vm->tableSeg[segmento].size;
     if (vm->tableSeg[segmento].size < cantMaximaCaracteres){
@@ -161,7 +161,7 @@ void SYS3(TVM *vm, int cantMaximaCaracteres, int tamanioCelda){
         cadena = (unsigned char *)malloc((cantMaximaCaracteres + 1) * sizeof(unsigned char));
     scanf("%s", cadena);
     for (i = 0; cadena[i] != '\0'; i++) {
-        vm->reg[LAR] = vm->reg[EDX] + i * tamanioCelda;
+        vm->reg[LAR] = vm->reg[EDX] + i;
         if((vm->reg[LAR] & 0xFFFF) > tamanioSegmento){
             printf("Error: Segmentation fault\n");
             exit(1);
@@ -170,10 +170,35 @@ void SYS3(TVM *vm, int cantMaximaCaracteres, int tamanioCelda){
         vm->reg[MBR] = cadena[i];
         writeMemory(vm);
     }
+    vm->reg[LAR] = vm->reg[EDX] + i;
+    if((vm->reg[LAR] & 0xFFFF) > tamanioSegmento){
+        printf("Error: Segmentation fault\n");
+        exit(1);
+    }
+    vm->reg[MAR] = tamanioCelda << 16;
+    vm->reg[MBR] = '\0';
+    writeMemory(vm);
+    free(cadena);
 }
 
 void SYS4(TVM *vm, int tipoOp1, int tipoOp2){
-    
+    unsigned char c;
+    unsigned int i, segmento, tamanioSegmento;
+    segmento = vm->reg[EDX] >> 16;
+    i = 0;
+    do{
+        vm->reg[LAR] = vm->reg[EDX] + i * 1;
+        tamanioSegmento = vm->tableSeg[segmento].size;
+        if((vm->reg[LAR] & 0xFFFF) > tamanioSegmento){
+            printf("Error: Segmentation fault\n");
+            exit(1);
+        }
+        vm->reg[MAR] = 0x00010000; // leo 1 byte
+        readMemory(vm);
+        c = (unsigned char)(vm->reg[MBR] & 0x000000FF);
+        printf("%c", c);
+        i++;
+    } while(c != '\0');
 }
 
 void SYS7(TVM *vm, int tipoOp1, int tipoOp2){
@@ -213,6 +238,10 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
         invalidSysCall,  // E
         SYSF            // F
     };
+
+    if(vm->reg[EDX] < 0)
+        exit(1);
+
     if(call < 0 || call > 0x0F) // Si el valor de call es mayor a 15 o menor a 0, salgo con error
         exit(1);
     
