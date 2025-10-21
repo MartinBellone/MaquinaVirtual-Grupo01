@@ -567,7 +567,7 @@ void executeDisassembly(TVM *vm) {
                 printf("%s", REGISTER_NAMES[codigoRegistro]);
             else{
                 strcpy(registro, REGISTER_NAMES[codigoRegistro]);
-                strcpy(aux, registro[1]);
+                strcpy(aux, (unsigned char *) registro[1]);
                 if(secR1 == 1)
                     strcat(aux, "L");
                 else
@@ -607,7 +607,7 @@ void executeDisassembly(TVM *vm) {
                 printf("%s", REGISTER_NAMES[codigoRegistro]);
             else{
                 strcpy(registro, REGISTER_NAMES[codigoRegistro]);
-                strcpy(aux, (unsigned char) registro[1]);
+                strcpy(aux, (unsigned char *) registro[1]);
                 if(secR2 == 1)
                     strcat(aux, "L");
                 else
