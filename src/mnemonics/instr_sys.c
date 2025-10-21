@@ -61,6 +61,10 @@ void muestraBinario(TVM *vm, int tamanioCelda) {
     printf(" ");
 }
 
+void invalidSysCall(TVM *vm, int tipoOp1, int tipoOp2) {
+    exit(1);
+}
+
 void SYS1(TVM *vm, int cantLecturas, int tamanioCelda) {
         // Cargo LAR con la direccion de memoria a escribir
         for (int j = 0; j < cantLecturas; j++) {
@@ -264,7 +268,4 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
 
 void STOP(TVM *vm, int tipoOp1, int tipoOp2) {
     vm->reg[IP] = 0xFFFFFFFF;  // Pongo IP en una direccion invalida para que no siga ejecutando
-}
-void invalidSysCall(TVM *vm, int tipoOp1, int tipoOp2) {
-    exit(1);
 }

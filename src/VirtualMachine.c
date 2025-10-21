@@ -575,7 +575,7 @@ void executeDisassembly(TVM *vm) {
                         strcat(aux, "H");
                     else
                         strcat(aux, "X");
-                print("%s", aux);
+                printf("%s", aux);
             }
             printed = 1;
         }
@@ -607,12 +607,12 @@ void executeDisassembly(TVM *vm) {
                 printf("%s", REGISTER_NAMES[codigoRegistro]);
             else{
                 strcpy(registro, REGISTER_NAMES[codigoRegistro]);
-                strcpy(aux, registro[1]);
+                strcpy(aux, (unsigned char) registro[1]);
                 if(secR2 == 1)
-                    strcat(aux, 'L');
+                    strcat(aux, "L");
                 else
                     if(secR2 == 2)
-                        strcat(aux, 'H');
+                        strcat(aux, "H");
                     else
                         strcat(aux, "X");
                 print("%s", aux);
