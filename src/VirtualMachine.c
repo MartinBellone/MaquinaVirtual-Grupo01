@@ -370,7 +370,7 @@ void initVm(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegment
         vm->reg[SP] -= 4;
         value = vm->argc;
         vm->reg[LAR] = vm->reg[SP];  // cargo el registro LAR con el segmento de parametros
-        unsigned int physAddr = convertToPhysicalAddress(vm);
+        physAddr = convertToPhysicalAddress(vm);
         vm->mem[physAddr] = (value >> 24) & 0xFF;      // byte más significativo
         vm->mem[physAddr + 1] = (value >> 16) & 0xFF;  // segundo byte
         vm->mem[physAddr + 2] = (value >> 8) & 0xFF;   // tercer byte
@@ -378,7 +378,7 @@ void initVm(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegment
 
         vm->reg[SP] -= 4;
         vm->reg[LAR] = vm->reg[SP];  // cargo el registro LAR con el segmento de stack
-        unsigned int physAddr = convertToPhysicalAddress(vm);
+        physAddr = convertToPhysicalAddress(vm);
         vm->mem[physAddr] = 0XFF;
         vm->mem[physAddr + 1] = 0XFF;
         vm->mem[physAddr + 2] = 0XFF;
@@ -485,9 +485,11 @@ void executeDisassembly(TVM *vm) {
         }
     }
 
+    printf(">");
+
     while (ip < vm->tableSeg[segmento].size) {
-        unsigned char instruction;
-        int operando1, operando2;
+        unsigned char instruction, registro[4], codigoRegistro, aux[4];
+        int operando1, operando2, tamanio1, tamanio2, secR1, secR2;
         int TOP1, TOP2, opc, i;
 
         instruction = vm->mem[ip];  // leo la instruccion
@@ -510,8 +512,8 @@ void executeDisassembly(TVM *vm) {
         printf("  |  %-8s ", MNEMONIC_NAMES[opc]);
 
         if (TOP2 == 1) {
-            //TODO actualizar a nueva version   
             operando2 = vm->mem[ip];
+            secR2 = (operando1 >> 6) & 0x3;
             ip++;
         } else if (TOP2 == 2) {
             operando2 = (vm->mem[ip] << 8) | vm->mem[ip + 1];
@@ -519,11 +521,13 @@ void executeDisassembly(TVM *vm) {
             ip += 2;
         } else if (TOP2 == 3) {
             operando2 = (vm->mem[ip] << 16) | (vm->mem[ip + 1] << 8) | vm->mem[ip + 2];
+            tamanio2 = (operando2 >> 22) & 0x03;  // los 2 bits más significativos indican el tamaño
             ip += 3;
         } else
             operando2 = 0;
 
         if (TOP1 == 1) {
+            secR2 = (operando2 >> 6) & 0x03;
             operando1 = vm->mem[ip];
             ip++;
         } else if (TOP1 == 2) {
@@ -531,6 +535,7 @@ void executeDisassembly(TVM *vm) {
             ip += 2;
         } else if (TOP1 == 3) {
             operando1 = (vm->mem[ip] << 16) | (vm->mem[ip + 1] << 8) | vm->mem[ip + 2];
+            tamanio1 = (operando1 >> 22) & 0x03;
             ip += 3;
         } else
             operando1 = 0;
@@ -539,8 +544,16 @@ void executeDisassembly(TVM *vm) {
         int printed = 0;
         if (TOP1 == 3) {
             unsigned char operandoMemoria = (operando1 & 0xFF000000) >> 24;
-            unsigned char codigoRegistro = (operando1 & 0xFF0000) >> 16;
+            unsigned char codigoRegistro = ((operando1 & 0x1F0000) >> 16);
             unsigned short int offset = operando1 & 0x00FFFF;
+            if(tamanio1 == 0)
+                printf("l");
+            else
+                if(tamanio1 == 2)
+                    printf("w");
+                else
+                    if(tamanio1 == 3)
+                        printf("b");
             if (offset == 0)
                 printf("[%s]", REGISTER_NAMES[codigoRegistro]);
             else
@@ -550,7 +563,20 @@ void executeDisassembly(TVM *vm) {
             printf("%d", operando1);
             printed = 1;
         } else if (TOP1 == 1) {
-            printf("%s", REGISTER_NAMES[operando1]);
+            if(secR1 == 0)
+                printf("%s", REGISTER_NAMES[codigoRegistro]);
+            else{
+                strcpy(registro, REGISTER_NAMES[codigoRegistro]);
+                strcpy(aux, registro[1]);
+                if(secR1 == 1)
+                    strcat(aux, 'L');
+                else
+                    if(secR1 == 2)
+                        strcat(aux, 'H');
+                    else
+                        strcat(aux, "X");
+                print("%s", aux);
+            }
             printed = 1;
         }
         if ((TOP1 != 0) && (TOP2 != 0)) {
@@ -558,9 +584,16 @@ void executeDisassembly(TVM *vm) {
             printed = 1;
         }
         if (TOP2 == 3) {
-            unsigned char codigoRegistro = (operando2 & 0xFF0000) >> 16;
+            unsigned char codigoRegistro = (operando2 & 0x1F0000) >> 16;
             unsigned short int offset = operando2 & 0x00FFFF;
-
+            if(tamanio1 == 0)
+                printf("l");
+            else
+                if(tamanio1 == 2)
+                    printf("w");
+                else
+                    if(tamanio1 == 3)
+                        printf("b");
             if (offset == 0)
                 printf("[%s]", REGISTER_NAMES[codigoRegistro]);
             else
@@ -570,7 +603,20 @@ void executeDisassembly(TVM *vm) {
             printf("%d", operando2);
             printed = 1;
         } else if (TOP2 == 1) {
-            printf("%s", REGISTER_NAMES[operando2]);
+             if(secR2 == 0)
+                printf("%s", REGISTER_NAMES[codigoRegistro]);
+            else{
+                strcpy(registro, REGISTER_NAMES[codigoRegistro]);
+                strcpy(aux, registro[1]);
+                if(secR2 == 1)
+                    strcat(aux, 'L');
+                else
+                    if(secR2 == 2)
+                        strcat(aux, 'H');
+                    else
+                        strcat(aux, "X");
+                print("%s", aux);
+            }
             printed = 1;
         }
         if (!printed)
