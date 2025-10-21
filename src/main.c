@@ -4,23 +4,23 @@
 
 #include "VirtualMachine.h"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     TVM vm;
     VMParams params;
-    parseArgs(argc, argv, &params,&vm);
+    parseArgs(argc, argv, &params, &vm);
 
     vm.argc = params.argc;
     buildParamSegment(&vm, &params);
 
     // Load a program into memory
-    if(params.vmxFile) // Si hay .vmx lo leo
+    if (params.vmxFile)  // Si hay .vmx lo leo
         readFileVMX(&vm, params.vmxFile);
-    else
-        if(params.vmiFile) // Si no habia .vmx pero si .vmi lo leo para ejecutar la imagen
-            readFileVMI(&vm, params.vmiFile);
-        else
-            printf("No se especificó archivo .vmx o .vmi\n");
-            exit(1);
+    else if (params.vmiFile)  // Si no habia .vmx pero si .vmi lo leo para ejecutar la imagen
+        readFileVMI(&vm, params.vmiFile);
+    else {
+        printf("No se especificó archivo .vmx o .vmi\n");
+        exit(1);
+    }
 
     // Mostrar el segmento de código cargado
     // showCodeSegment(&vm);

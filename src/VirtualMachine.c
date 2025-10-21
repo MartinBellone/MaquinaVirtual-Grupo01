@@ -12,8 +12,8 @@
 #include "instr_sys.h"
 #include "utils.h"
 
-void menu(TVM *vm, int tipoOp1, int tipoOp2) {
-    void (*func[])(TVM *vm, int tipoOp1, int tipoOp2) = {
+void menu(TVM* vm, int tipoOp1, int tipoOp2) {
+    void (*func[])(TVM* vm, int tipoOp1, int tipoOp2) = {
         SYS, JMP, JZ, JP, JN, JNZ, JNP, JNN, NOT, invalidOpCode, invalidOpCode, invalidOpCode,
         invalidOpCode, invalidOpCode, invalidOpCode,
         STOP, MOV, ADD, SUB, MUL, DIV, CMP, SHL, SHR, SAR, AND, OR, XOR, SWAP, LDL, LDH,
@@ -21,7 +21,7 @@ void menu(TVM *vm, int tipoOp1, int tipoOp2) {
     func[vm->reg[OPC]](vm, tipoOp1, tipoOp2);
 }
 
-void initTSR(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegments) {
+void initTSR(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegments) {
     int j = 0;  // Indice de escritura en la tabla de segmentos
     for (int i = 0; i < cantSegments; i++) {
         if (sizes[i] != 0) {
@@ -31,11 +31,12 @@ void initTSR(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegmen
             else
                 vm->tableSeg[j].base = vm->tableSeg[j - 1].base + vm->tableSeg[j - 1].size;
             j++;
+            printf("Segmento %d: Base = %d, Size = %d\n", j - 1, vm->tableSeg[j - 1].base, vm->tableSeg[j - 1].size);
         }
     }
 }
 
-void parseArgs(int argc, char *argv[], VMParams *argsSalida, TVM *vm) {
+void parseArgs(int argc, char* argv[], VMParams* argsSalida, TVM* vm) {
     argsSalida->vmxFile = NULL;
     argsSalida->vmiFile = NULL;
     argsSalida->memSize = 16 * 1024;  // default 16KiB
@@ -71,23 +72,24 @@ void parseArgs(int argc, char *argv[], VMParams *argsSalida, TVM *vm) {
         fprintf(stderr, "ERROR: No se especificó archivo .vmx\n");
         exit(1);
     }
-    if (argsSalida->vmiFile){
+    if (argsSalida->vmiFile) {
         vm->vmiFile = argsSalida->vmiFile;
     }
 }
-void buildParamSegment(TVM *vm, VMParams *argsSalida) {
+void buildParamSegment(TVM* vm, VMParams* argsSalida) {
     unsigned int base = 0;  // El segmento de parámetros siempre inicia en 0
     unsigned int offset = 0;
     unsigned int ptrs[argsSalida->argc];  // direcciones de cada string
 
     if (argsSalida->argc == 0) {
         vm->reg[PS] = -1;
+        printf("No hay parámetros para el segmento PS.\n");
         return;
     }
 
     // Copiar los strings uno detrás del otro
     for (int i = 0; i < argsSalida->argc; i++) {
-        ptrs[i] = offset;                     // dirección del inicio del string i
+        ptrs[i] = offset;                           // dirección del inicio del string i
         int len = strlen(argsSalida->argv[i]) + 1;  // incluye el '\0'
         memcpy(&vm->mem[offset], argsSalida->argv[i], len);
         offset += len;
@@ -107,13 +109,14 @@ void buildParamSegment(TVM *vm, VMParams *argsSalida) {
     vm->tableSeg[0].base = base;
     vm->tableSeg[0].size = offset;
 
+    printf("Segmento PS: Base = %d, Size = %d\n", base, offset);
     // Registrar el segmento PS
     vm->reg[PS] = base;
 }
 
-void readFileVMX(TVM *vm, char *fileName) {
+void readFileVMX(TVM* vm, char* fileName) {
     // funcion para leer el vmx
-    FILE *arch;
+    FILE* arch;
     unsigned char c, header[6], version;
     unsigned int CSsize;
     unsigned short int sizes[7] = {0};  // tamanos de los segmentos
@@ -125,7 +128,7 @@ void readFileVMX(TVM *vm, char *fileName) {
         fread(header, sizeof(char), 5, arch);
         header[5] = '\0';  // Asegurarse de que la cadena esté terminada en null
 
-        if (strcmp(header, (unsigned char *)"VMX25") != 0) {
+        if (strcmp(header, (unsigned char*)"VMX25") != 0) {
             printf("ERROR: formato de archivo incorrecto (header %s)\n", header);
             exit(1);
         }
@@ -181,7 +184,7 @@ void readFileVMX(TVM *vm, char *fileName) {
                 exit(1);
             }
             unsigned int KSsize = (KSsizeBytes[0] << 8) | KSsizeBytes[1];
-
+            printf("Sizes - CS: %u, DS: %u, ES: %u, SS: %u, KS: %u\n", CSsize, DSsize, ESsize, SSsize, KSsize);
             if (CSsize + DSsize + ESsize + SSsize + KSsize > 16384) {
                 printf("Error: El programa es demasiado grande para la memoria asignada.\n");
                 fclose(arch);
@@ -194,19 +197,24 @@ void readFileVMX(TVM *vm, char *fileName) {
             }
             unsigned int entryPoint = (entryPointBytes[0] << 8) | entryPointBytes[1];
 
-            sizes[0] = vm->tableSeg[0].size;  // PS
-            sizes[1] = KSsize;                // KS
-            sizes[2] = CSsize;                // CS
-            sizes[3] = DSsize;                // DS
-            sizes[4] = ESsize;                // ES
-            sizes[5] = SSsize;                // SS
-            sizes[6] = entryPoint;            // entry point
+            if (vm->reg[PS] == -1)
+                sizes[0] = 0;
+            else
+                sizes[0] = vm->tableSeg[0].size;  // PS
+            sizes[1] = KSsize;                    // KS
+            sizes[2] = CSsize;                    // CS
+            sizes[3] = DSsize;                    // DS
+            sizes[4] = ESsize;                    // ES
+            sizes[5] = SSsize;                    // SS
+            sizes[6] = entryPoint;                // entry point
             initTSR(vm, sizes, 6);
-            sizes[0] = CSsize;  // CS
-            sizes[1] = DSsize;  // DS
-            sizes[2] = ESsize;  // ES
-            sizes[3] = SSsize;  // SS
-            sizes[4] = KSsize;  // KS
+            sizes[0] = CSsize;      // CS
+            sizes[1] = DSsize;      // DS
+            sizes[2] = ESsize;      // ES
+            sizes[3] = SSsize;      // SS
+            sizes[4] = KSsize;      // KS
+            sizes[5] = entryPoint;  // entry point
+            printf("Entry point: %x", entryPoint);
             initVm(vm, sizes, 5);
         } else {
             printf("ERROR: versión de archivo incorrecta (%d)\n", version);
@@ -218,13 +226,16 @@ void readFileVMX(TVM *vm, char *fileName) {
         unsigned int codeSegment = vm->reg[CS] >> 16;
         i = vm->tableSeg[codeSegment].base;
         int cantLecturas = 0;
+        printf("Empiezo a leer\n");
         while (fread(&c, sizeof(char), 1, arch) == 1 && cantLecturas < CSsize) {
             vm->mem[i] = c;
             i++;
             cantLecturas++;
         }
+        printf("Sali\n");
         unsigned int KSsegment = vm->reg[KS] >> 16;  // el registro KS existe aunque la version sea 1
-        if (version == 2 && vm->tableSeg[KSsegment].size > 0) {
+        printf("KS %x\n", KSsegment);
+        if (version == 2 && vm->reg[KS] > 0) {
             // debo inicializar el segmento de constantes
             i = vm->tableSeg[KSsegment].base;
             while (fread(&c, sizeof(char), 1, arch) == 1) {
@@ -232,12 +243,13 @@ void readFileVMX(TVM *vm, char *fileName) {
                 i++;
             }
         }
+        printf("Termine de cargar el ks\n");
         fclose(arch);
     }
 }
 
-void readFileVMI(TVM *vm, char *fileName) {
-    FILE *arch;
+void readFileVMI(TVM* vm, char* fileName) {
+    FILE* arch;
     unsigned char header[6], version;
     unsigned int dato;  // 4 bytes por registro
     unsigned short int base, size, tamanioMem;
@@ -248,7 +260,7 @@ void readFileVMI(TVM *vm, char *fileName) {
         fread(header, sizeof(char), 5, arch);
         header[5] = '\0';  // Asegurarse de que la cadena esté terminada en null
 
-        if (strcmp(header, (unsigned char *)"VMI25") != 0) {
+        if (strcmp(header, (unsigned char*)"VMI25") != 0) {
             printf("ERROR: formato de archivo incorrecto (header %s)\n", header);
             exit(1);
         }
@@ -302,8 +314,8 @@ void readFileVMI(TVM *vm, char *fileName) {
     }
 }
 
-void writeFile(TVM *vm, char *fileName) {
-    FILE *arch;
+void writeFile(TVM* vm, char* fileName) {
+    FILE* arch;
     unsigned char header[6] = "VMI25";
     unsigned char version = 0x01;
     if ((arch = fopen(fileName, "wb")) == NULL)
@@ -335,27 +347,37 @@ void writeFile(TVM *vm, char *fileName) {
     }
 }
 
-void showCodeSegment(TVM *vm) {
+void showCodeSegment(TVM* vm) {
+    printf("\n----- Segmento de Código -----\n");
     for (int i = 0; i < vm->tableSeg[0].size; i++) {
         printf("[%04x]: %X\n", i, vm->mem[i]);
     }
 }
 
-void initVm(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegments) {
+void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegments) {
     unsigned short int totalSize = 0;
     int value;
-    for (int i = 0; i < cantSegments; i++) {
-        if (sizes[i] != 0)
-            vm->reg[26 + i] = i << 16;
-        else
+    int j = 0;
+    for (int i = 0; i <= cantSegments; i++) {
+        if (sizes[i] != 0) {
+            vm->reg[26 + i] = j << 16;
+            j++;
+        } else
             vm->reg[26 + i] = -1;  // segmento no usado
         totalSize += sizes[i];
+        printf("Registro %d inicializado con valor %x\n", 26 + i, vm->reg[26 + i]);
     }
-    vm->mem = (unsigned char *)malloc(totalSize * sizeof(unsigned char));
+    vm->mem = (unsigned char*)malloc(totalSize * sizeof(unsigned char));
     if (vm->reg[SS] != -1) {
-        vm->reg[SP] = vm->reg[SS] + vm->tableSeg[(vm->reg[SS] >> 16)].size;  // inicializo el stack pointer en el tope del segmento de stack
+        unsigned int codeSegment = vm->reg[CS] >> 16;
+        vm->reg[IP] = codeSegment;
+
         // inicializo el instruction pointer en la parte alta con con la direccion del CS y en la parte baja con el entry point
-        vm->reg[IP] = vm->reg[CS] | sizes[7];
+        vm->reg[IP] = vm->reg[IP] << 16;
+        vm->reg[IP] |= sizes[5];
+        printf("IP inicializado en %08x\n", vm->reg[IP]);
+
+        vm->reg[SP] = vm->reg[SS] + vm->tableSeg[(vm->reg[SS] >> 16)].size;  // inicializo el stack pointer en el tope del segmento de stack
 
         // Inicializo Stack
         vm->reg[SP] -= 4;
@@ -383,10 +405,12 @@ void initVm(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegment
         vm->mem[physAddr + 1] = 0XFF;
         vm->mem[physAddr + 2] = 0XFF;
         vm->mem[physAddr + 3] = 0XFF;
+    } else {
+        vm->reg[IP] = 0;
     }
 }
 
-void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
+void readOp(TVM* vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
 
     if (TOP == 0b01) {
         vm->reg[numOp] = 0x01 << 24;             // registro
@@ -415,14 +439,16 @@ void readOp(TVM *vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de 
     }
 }
 
-void readInstruction(TVM *vm) {
+void readInstruction(TVM* vm) {
     unsigned char instruction;
     int maskOPC = 0b00011111;   // mascara para obtener el codigo de operacion
     int maskTOP1 = 0b00110000;  // mascara para obtener el primer operando
     int maskTOP2 = 0b11000000;  // mascara para obtener el segundo operando
     int TOP1, TOP2;
-
-    instruction = vm->mem[vm->reg[IP]];  // leo la instruccion
+    unsigned int segmento = (vm->reg[IP] & 0x00010000) >> 16;
+    unsigned int base = vm->tableSeg[segmento].base;
+    unsigned int offset = vm->reg[IP] & 0x0000FFFF;
+    instruction = vm->mem[base + offset];  // leo la instruccion
 
     // decodifica la instruccion
     TOP2 = (instruction & maskTOP2) >> 6;
@@ -445,10 +471,14 @@ void readInstruction(TVM *vm) {
     menu(vm, TOP1, TOP2);
 }
 
-void executeProgram(TVM *vm) {
+void executeProgram(TVM* vm) {
     printf("\n----- Ejecucion del programa -----\n");
     while (1) {
-        if (vm->reg[IP] >= vm->tableSeg[0].size) {
+        unsigned int codeSegment = vm->reg[CS] >> 16;
+
+        if ((vm->reg[IP] & 0x0000FFFF) >= (vm->tableSeg[codeSegment].size + vm->tableSeg[codeSegment].base)) {
+            printf("me voy\n");
+            printf("%x", vm->reg[IP]);
             exit(0);
         } else {
             if (vm->reg[IP] == -1)  // instruccion STOP
@@ -458,18 +488,19 @@ void executeProgram(TVM *vm) {
     }
 }
 
-void executeDisassembly(TVM *vm) {
+void executeDisassembly(TVM* vm) {
     printf("----- Disassembler -----\n");
 
     int ip = vm->reg[IP], segmento = ip >> 16, i;
     ip = ip & 0x0000FFFF;
+    ip = ip + vm->tableSeg[segmento].base;
     int maskOPC = 0b00011111;   // mascara para obtener el codigo de operacion
     int maskTOP1 = 0b00110000;  // mascara para obtener el primer operando
     int maskTOP2 = 0b11000000;  // mascara para obtener el segundo operando
 
-    if (vm->reg[KS] != -1){
+    if (vm->reg[KS] != -1) {
         i = 0;
-        while(i < vm->tableSeg[vm->reg[KS] >> 16].size) { 
+        while (i < vm->tableSeg[vm->reg[KS] >> 16].size) {
             printf("[%04X]: ", vm->tableSeg[vm->reg[KS] >> 16].base + i);
             char c = vm->mem[vm->tableSeg[vm->reg[KS] >> 16].base + i];
             while (c != 0 && i < vm->tableSeg[vm->reg[KS] >> 16].size) {
@@ -486,8 +517,9 @@ void executeDisassembly(TVM *vm) {
     }
 
     printf(">");
-
-    while (ip < vm->tableSeg[segmento].size) {
+    // printf("ip: %x\n", ip);
+    // printf("%d %d \n", vm->tableSeg[segmento].size, vm->tableSeg[segmento].base);
+    while (ip < (vm->tableSeg[segmento].size + vm->tableSeg[segmento].base)) {
         unsigned char instruction, registro[4], codigoRegistro, aux[4];
         int operando1, operando2, tamanio1, tamanio2, secR1, secR2;
         int TOP1, TOP2, opc, i;
@@ -546,14 +578,13 @@ void executeDisassembly(TVM *vm) {
             unsigned char operandoMemoria = (operando1 & 0xFF000000) >> 24;
             unsigned char codigoRegistro = ((operando1 & 0x1F0000) >> 16);
             unsigned short int offset = operando1 & 0x00FFFF;
-            if(tamanio1 == 0)
+
+            if (tamanio1 == 0)
                 printf("l");
-            else
-                if(tamanio1 == 2)
-                    printf("w");
-                else
-                    if(tamanio1 == 3)
-                        printf("b");
+            else if (tamanio1 == 2)
+                printf("w");
+            else if (tamanio1 == 3)
+                printf("b");
             if (offset == 0)
                 printf("[%s]", REGISTER_NAMES[codigoRegistro]);
             else
@@ -563,18 +594,19 @@ void executeDisassembly(TVM *vm) {
             printf("%d", operando1);
             printed = 1;
         } else if (TOP1 == 1) {
-            if(secR1 == 0)
+            printf("Fallo aca!");
+            printf("este es el codigo de registro: %d", codigoRegistro);
+            if (secR1 == 0)
                 printf("%s", REGISTER_NAMES[codigoRegistro]);
-            else{
+            else {
                 strcpy(registro, REGISTER_NAMES[codigoRegistro]);
-                strcpy(aux, (unsigned char *) registro[1]);
-                if(secR1 == 1)
+                strcpy(aux, (unsigned char*)registro[1]);
+                if (secR1 == 1)
                     strcat(aux, "L");
+                else if (secR1 == 2)
+                    strcat(aux, "H");
                 else
-                    if(secR1 == 2)
-                        strcat(aux, "H");
-                    else
-                        strcat(aux, "X");
+                    strcat(aux, "X");
                 printf("%s", aux);
             }
             printed = 1;
@@ -586,14 +618,12 @@ void executeDisassembly(TVM *vm) {
         if (TOP2 == 3) {
             unsigned char codigoRegistro = (operando2 & 0x1F0000) >> 16;
             unsigned short int offset = operando2 & 0x00FFFF;
-            if(tamanio1 == 0)
+            if (tamanio1 == 0)
                 printf("l");
-            else
-                if(tamanio1 == 2)
-                    printf("w");
-                else
-                    if(tamanio1 == 3)
-                        printf("b");
+            else if (tamanio1 == 2)
+                printf("w");
+            else if (tamanio1 == 3)
+                printf("b");
             if (offset == 0)
                 printf("[%s]", REGISTER_NAMES[codigoRegistro]);
             else
@@ -603,18 +633,17 @@ void executeDisassembly(TVM *vm) {
             printf("%d", operando2);
             printed = 1;
         } else if (TOP2 == 1) {
-             if(secR2 == 0)
+            if (secR2 == 0)
                 printf("%s", REGISTER_NAMES[codigoRegistro]);
-            else{
+            else {
                 strcpy(registro, REGISTER_NAMES[codigoRegistro]);
-                strcpy(aux, (unsigned char *) registro[1]);
-                if(secR2 == 1)
+                strcpy(aux, (unsigned char*)registro[1]);
+                if (secR2 == 1)
                     strcat(aux, "L");
+                else if (secR2 == 2)
+                    strcat(aux, "H");
                 else
-                    if(secR2 == 2)
-                        strcat(aux, "H");
-                    else
-                        strcat(aux, "X");
+                    strcat(aux, "X");
                 printf("%s", aux);
             }
             printed = 1;
