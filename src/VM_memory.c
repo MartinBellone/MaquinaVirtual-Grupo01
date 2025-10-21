@@ -6,7 +6,7 @@
 #include "constants.h"
 #include "utils.h"
 
-int convertToPhysicalAddress(TVM *vm) {
+unsigned int convertToPhysicalAddress(TVM *vm) {
     int segment, baseSeg, offSeg;
     segment = (vm->reg[LAR] & 0xFFFF0000) >> 16;  // obtengo el segmento
 
