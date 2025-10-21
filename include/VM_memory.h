@@ -5,4 +5,4 @@
 
 void readMemory(TVM *vm);
 void writeMemory(TVM *vm);
-int convertToPhysicalAddress(TVM *vm);
+unsigned int convertToPhysicalAddress(TVM *vm);
