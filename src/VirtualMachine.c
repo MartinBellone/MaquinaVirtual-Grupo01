@@ -35,7 +35,7 @@ void initTSR(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegmen
     }
 }
 
-void parseargs(int argc, char *argv[], VMParams *argsSalida, TVM *vm) {
+void parseArgs(int argc, char *argv[], VMParams *argsSalida, TVM *vm) {
     argsSalida->vmxFile = NULL;
     argsSalida->vmiFile = NULL;
     argsSalida->memSize = 16 * 1024;  // default 16KiB
