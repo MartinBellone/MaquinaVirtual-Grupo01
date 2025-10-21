@@ -12,7 +12,7 @@ typedef struct {
     int memSize;
     int disassembly;
     int argc;
-    char **argv;
+    char *argv[];
 } VMParams;
 
 typedef struct {
@@ -21,7 +21,7 @@ typedef struct {
     TSR tableSeg[8];
     char *vmiFile;
     int argc;
-    char **argv;
+    unsigned int argv;
 } TVM;                   
                                                              // Type virtual machine
 void initTSR(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegments);  // Funcion para inicializar la tabla de segmentos
@@ -32,7 +32,7 @@ void readOp(TVM *vm, int TOP, int numOp);
 void showCodeSegment(TVM *vm);
 void executeProgram(TVM *vm);
 void executeDisassembly(TVM *vm);
-void parseArgs(int argc, char *argv[], VMParams *args, TVM *vm);
+void parseArgs(int argc, char *argv[], VMParams *argsSalida, TVM *vm);
 void buildParamSegment(TVM *vm, VMParams *params);
 void readFileVMI(TVM *vm, char *fileName);
 void writeFile(TVM *vm, char *fileName);

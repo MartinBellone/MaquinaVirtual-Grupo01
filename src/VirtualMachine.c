@@ -35,27 +35,27 @@ void initTSR(TVM *vm, unsigned short int sizes[7], unsigned short int cantSegmen
     }
 }
 
-void parseArgs(int argc, char *argv[], VMParams *args, TVM *vm) {
-    args->vmxFile = NULL;
-    args->vmiFile = NULL;
-    args->memSize = 16 * 1024;  // default 16KiB
-    args->disassembly = 0;
-    args->argc = 0;
+void parseargs(int argc, char *argv[], VMParams *argsSalida, TVM *vm) {
+    argsSalida->vmxFile = NULL;
+    argsSalida->vmiFile = NULL;
+    argsSalida->memSize = 16 * 1024;  // default 16KiB
+    argsSalida->disassembly = 0;
+    argsSalida->argc = 0;
 
     for (int i = 1; i < argc; i++) {
         if (strstr(argv[i], ".vmx")) {
-            args->vmxFile = argv[i];
+            argsSalida->vmxFile = argv[i];
         } else if (strstr(argv[i], ".vmi")) {
-            args->vmiFile = argv[i];
+            argsSalida->vmiFile = argv[i];
         } else if (strncmp(argv[i], "m=", 2) == 0) {
-            args->memSize = atoi(argv[i] + 2) * 1024;  // m=64 → 64KiB
+            argsSalida->memSize = atoi(argv[i] + 2) * 1024;  // m=64 → 64KiB
         } else if (strcmp(argv[i], "-d") == 0) {
-            args->disassembly = 1;
+            argsSalida->disassembly = 1;
         } else if (strcmp(argv[i], "-p") == 0) {
             // todo lo que sigue son parámetros del programa
             // este argv no se pasa a la VM, es un array que luego sera el param segment
             for (int j = i + 1; j < argc; j++) {
-                args->argv[args->argc++] = argv[j];
+                strcpy(argsSalida->argv[argsSalida->argc++], argv[j]);
             }
             break;
         } else {
@@ -63,42 +63,42 @@ void parseArgs(int argc, char *argv[], VMParams *args, TVM *vm) {
         }
     }
     // mostrar param segment
-    for (int i = 0; i < args->argc; i++) {
-        printf("argv[%d]: %s\n", i, args->argv[i]);
+    for (int i = 0; i < argsSalida->argc; i++) {
+        printf("argv[%d]: %s\n", i, argsSalida->argv[i]);
     }
 
-    if (!args->vmxFile) {
+    if (!argsSalida->vmxFile) {
         fprintf(stderr, "ERROR: No se especificó archivo .vmx\n");
         exit(1);
     }
-    if (args->vmiFile){
-        vm->vmiFile = args->vmiFile;
+    if (argsSalida->vmiFile){
+        vm->vmiFile = argsSalida->vmiFile;
     }
 }
-void buildParamSegment(TVM *vm, VMParams *args) {
+void buildParamSegment(TVM *vm, VMParams *argsSalida) {
     unsigned int base = 0;  // El segmento de parámetros siempre inicia en 0
     unsigned int offset = 0;
-    unsigned int ptrs[args->argc];  // direcciones de cada string
+    unsigned int ptrs[argsSalida->argc];  // direcciones de cada string
 
-    if (args->argc == 0) {
+    if (argsSalida->argc == 0) {
         vm->reg[PS] = -1;
         return;
     }
 
     // Copiar los strings uno detrás del otro
-    for (int i = 0; i < args->argc; i++) {
+    for (int i = 0; i < argsSalida->argc; i++) {
         ptrs[i] = offset;                     // dirección del inicio del string i
-        int len = strlen(args->argv[i]) + 1;  // incluye el '\0'
-        memcpy(&vm->mem[offset], args->argv[i], len);
+        int len = strlen(argsSalida->argv[i]) + 1;  // incluye el '\0'
+        memcpy(&vm->mem[offset], argsSalida->argv[i], len);
         offset += len;
     }
 
     // Agregar marcador de fin de punteros (-1)
-    ptrs[args->argc] = 0xFFFFFFFF;
+    ptrs[argsSalida->argc] = 0xFFFFFFFF;
 
     // Copiar los punteros al final de la sección de strings
-    vm->argv = &(ptrs[0]);  // dirección del inicio del arreglo de punteros
-    for (int i = 0; i <= args->argc; i++) {
+    vm->argv = offset;  // dirección del inicio del arreglo de punteros
+    for (int i = 0; i <= argsSalida->argc; i++) {
         memcpy(&vm->mem[offset], &ptrs[i], sizeof(int));
         offset += sizeof(int);
     }
@@ -615,7 +615,7 @@ void executeDisassembly(TVM *vm) {
                         strcat(aux, "H");
                     else
                         strcat(aux, "X");
-                print("%s", aux);
+                printf("%s", aux);
             }
             printed = 1;
         }
