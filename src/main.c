@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
         if(params.vmiFile) // Si no habia .vmx pero si .vmi lo leo para ejecutar la imagen
             readFileVMI(&vm, params.vmiFile);
         else
-            print("No se especificó archivo .vmx o .vmi\n");
+            printf("No se especificó archivo .vmx o .vmi\n");
             exit(1);
 
     // Mostrar el segmento de código cargado

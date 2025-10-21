@@ -569,10 +569,10 @@ void executeDisassembly(TVM *vm) {
                 strcpy(registro, REGISTER_NAMES[codigoRegistro]);
                 strcpy(aux, registro[1]);
                 if(secR1 == 1)
-                    strcat(aux, 'L');
+                    strcat(aux, "L");
                 else
                     if(secR1 == 2)
-                        strcat(aux, 'H');
+                        strcat(aux, "H");
                     else
                         strcat(aux, "X");
                 print("%s", aux);
