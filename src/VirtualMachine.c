@@ -254,6 +254,7 @@ void readFileVMI(TVM* vm, char* fileName) {
     unsigned int dato;  // 4 bytes por registro
     unsigned short int base, size, tamanioMem;
 
+    arch = fopen(fileName, "rb");
     if (arch == NULL)
         printf("ERROR al abrir el archivo %s : ", fileName);
     else {
@@ -321,6 +322,7 @@ void writeFile(TVM* vm, char* fileName) {
     if ((arch = fopen(fileName, "wb")) == NULL)
         printf("ERROR al crear el archivo %s : ", fileName);
     else {
+        printf("Escribiendo archivo VMI...\n");
         // Escritura del identificador y version del archivo
         fwrite(header, sizeof(char), 5, arch);
         fwrite(&version, sizeof(char), 1, arch);
@@ -337,7 +339,7 @@ void writeFile(TVM* vm, char* fileName) {
             fwrite(&vm->tableSeg[i].size, sizeof(unsigned short int), 1, arch);
             tamanioMem += vm->tableSeg[i].size;
         }
-
+        printf("Tamaño de memoria a escribir: %d bytes\n", tamanioMem);
         // Escritura de memoria
         for (int i = 0; i < tamanioMem; i++) {
             fwrite(&vm->mem[i], sizeof(unsigned char), 1, arch);
@@ -368,6 +370,7 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
         printf("Registro %d inicializado con valor %x\n", 26 + i, vm->reg[26 + i]);
     }
     vm->mem = (unsigned char*)malloc(totalSize * sizeof(unsigned char));
+    printf("Memoria de %d bytes asignada a la VM.\n", totalSize);
     if (vm->reg[SS] != -1) {
         unsigned int codeSegment = vm->reg[CS] >> 16;
         vm->reg[IP] = codeSegment;
@@ -468,7 +471,7 @@ void readInstruction(TVM* vm) {
         }
     }
     printf("\n------------------------------\n");
-    printf("Instruccion leida: OPC=%-8s, TOP1=%d, TOP2=%d\n", MNEMONIC_NAMES[vm->reg[OPC]], TOP1, TOP2);
+    printf("Instruccion leida: Mnemonico=%-8s, TOP1=%d, TOP2=%d\n", MNEMONIC_NAMES[vm->reg[OPC]], TOP1, TOP2);
     printf("OP1=%08X\n", vm->reg[OP1]);
     printf("OP2=%08X\n", vm->reg[OP2]);
 
@@ -496,7 +499,7 @@ void executeDisassembly(TVM* vm) {
 
     int ip = vm->reg[IP], segmento = ip >> 16, i;
     ip = ip & 0x0000FFFF;
-    ip = ip + vm->tableSeg[segmento].base;
+    ip = vm->tableSeg[vm->reg[CS] >> 16].base;
     int maskOPC = 0b00011111;   // mascara para obtener el codigo de operacion
     int maskTOP1 = 0b00110000;  // mascara para obtener el primer operando
     int maskTOP2 = 0b11000000;  // mascara para obtener el segundo operando
@@ -519,13 +522,18 @@ void executeDisassembly(TVM* vm) {
         }
     }
 
-    printf(">");
     // printf("ip: %x\n", ip);
     // printf("%d %d \n", vm->tableSeg[segmento].size, vm->tableSeg[segmento].base);
     while (ip < (vm->tableSeg[segmento].size + vm->tableSeg[segmento].base)) {
         unsigned char instruction, registro[4], codigoRegistro, aux[4];
         int operando1, operando2, tamanio1, tamanio2, secR1, secR2;
         int TOP1, TOP2, opc, i;
+
+        if (ip == (vm->reg[IP] & 0x0000FFFF)) {
+            printf("-> ");
+        } else {
+            printf("   ");
+        }
 
         instruction = vm->mem[ip];  // leo la instruccion
         printf("[%04X]  ", ip);
@@ -548,7 +556,7 @@ void executeDisassembly(TVM* vm) {
 
         if (TOP2 == 1) {
             operando2 = vm->mem[ip];
-            secR2 = (operando1 >> 6) & 0x3;
+            secR2 = (operando2 >> 6) & 0x3;
             ip++;
         } else if (TOP2 == 2) {
             operando2 = (vm->mem[ip] << 8) | vm->mem[ip + 1];
@@ -562,8 +570,8 @@ void executeDisassembly(TVM* vm) {
             operando2 = 0;
 
         if (TOP1 == 1) {
-            secR2 = (operando2 >> 6) & 0x03;
             operando1 = vm->mem[ip];
+            secR1 = (operando1 >> 6) & 0x03;
             ip++;
         } else if (TOP1 == 2) {
             operando1 = (vm->mem[ip] << 8) | vm->mem[ip + 1];
@@ -574,14 +582,16 @@ void executeDisassembly(TVM* vm) {
             ip += 3;
         } else
             operando1 = 0;
-
+        // printf("TOP1=%d TOP2=%d\n", TOP1, TOP2);
+        // printf("OP1=%08X \t", operando1);
+        // printf("OP2=%08X \t", operando2);
+        // printf("\nSecR1=%d, SecR2=%d\t\n", secR1, secR2);
         // Operandos alineados
         int printed = 0;
         if (TOP1 == 3) {
-            unsigned char operandoMemoria = (operando1 & 0xFF000000) >> 24;
             unsigned char codigoRegistro = ((operando1 & 0x1F0000) >> 16);
+            unsigned char operandoMemoria = (operando1 & 0xFF000000) >> 24;
             unsigned short int offset = operando1 & 0x00FFFF;
-
             if (tamanio1 == 0)
                 printf("l");
             else if (tamanio1 == 2)
@@ -597,8 +607,9 @@ void executeDisassembly(TVM* vm) {
             printf("%d", operando1);
             printed = 1;
         } else if (TOP1 == 1) {
-            printf("Fallo aca!");
-            printf("este es el codigo de registro: %d", codigoRegistro);
+            unsigned char codigoRegistro = operando1;
+            // printf("Fallo aca!");
+            // printf("este es el codigo de registro: %d", codigoRegistro);
             if (secR1 == 0)
                 printf("%s", REGISTER_NAMES[codigoRegistro]);
             else {
@@ -636,6 +647,7 @@ void executeDisassembly(TVM* vm) {
             printf("%d", operando2);
             printed = 1;
         } else if (TOP2 == 1) {
+            unsigned char codigoRegistro = operando2;
             if (secR2 == 0)
                 printf("%s", REGISTER_NAMES[codigoRegistro]);
             else {

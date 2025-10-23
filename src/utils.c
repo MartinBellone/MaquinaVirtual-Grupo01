@@ -6,14 +6,14 @@
 #include "VM_memory.h"
 #include "constants.h"
 
-const char *MNEMONIC_NAMES[] = {
+const char* MNEMONIC_NAMES[] = {
     "SYS", "JMP", "JZ", "JP", "JN", "JNZ", "JNP", "JNN", "NOT",
-    "Invalid Operation Code", "PUSH", "POP",
-    "CALL", "RET", "Invalid Operation Code",
+    "Invalid Operation Code", "Invalid Operation Code", "PUSH", "POP",
+    "CALL", "RET",
     "STOP", "MOV", "ADD", "SUB", "MUL", "DIV", "CMP", "SHL", "SHR", "SAR",
     "AND", "OR", "XOR", "SWAP", "LDL", "LDH", "RND"};
 
-const char *REGISTER_NAMES[] = {
+const char* REGISTER_NAMES[] = {
     "LAR", "MAR", "MBR", "IP", "OPC", "OP1", "OP2",
     "SP", "BP", "RESERVADO", "EAX",
     "EBX", "ECX", "EDX", "EEX", "EFX", "AC", "CC",
@@ -22,7 +22,7 @@ const char *REGISTER_NAMES[] = {
     "CS", "DS", "ES", "SS", "KS",
     "PS"};
 
-void setCC(TVM *vm, int value) {
+void setCC(TVM* vm, int value) {
     if (value < 0)  // N=1
         vm->reg[CC] |= 1 << 31;
     else  // N=0
@@ -38,7 +38,7 @@ int signExtend(unsigned int value, int nbytes) {
     return (int)(value << shift) >> shift;  // extiende signo al castear
 }
 
-int getOp(TVM *vm, int registerValue) {
+int getOp(TVM* vm, int registerValue) {
     int type = (registerValue & 0xFF000000) >> 24;  // obtengo el tipo de operando
     int opAux = registerValue & 0x00FFFFFF;         // obtengo el operando sin el tipo
 
@@ -78,7 +78,7 @@ int getOp(TVM *vm, int registerValue) {
     }
     return 0;
 }
-void setOp(TVM *vm, int registerValue, int value) {
+void setOp(TVM* vm, int registerValue, int value) {
     int mask = 0x00FFFFFF;
     int type = (registerValue & 0xFF000000) >> 24;  // obtengo el tipo de operando
     int opAux = registerValue & mask;               // obtengo el operando sin el tipo
@@ -116,7 +116,7 @@ void setOp(TVM *vm, int registerValue, int value) {
     }
 }
 
-void invalidOpCode(TVM *vm, int tipoOp1, int tipoOp2) {
+void invalidOpCode(TVM* vm, int tipoOp1, int tipoOp2) {
     printf("Error: Invalid Mnemonic Code");
     exit(1);
 }
