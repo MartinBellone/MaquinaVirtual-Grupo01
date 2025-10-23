@@ -1,5 +1,5 @@
 #include "instr_data.h"
-
+#include "VM_memory.h"
 #include <stdio.h>
 #include <stdlib.h>
 

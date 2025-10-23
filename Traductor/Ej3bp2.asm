@@ -28,7 +28,8 @@ fin:  ADD AC, '0' ; Convierto el resto a su valor ASCII
       POP BP 
       RET 
 
-main: MOV EAX, 1
+main: SYS 0xF
+MOV EAX, 1
 MOV EDX, DS
 LDL ECX, 1
 LDH ECX, 4
