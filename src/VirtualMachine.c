@@ -22,6 +22,10 @@ void menu(TVM* vm, int tipoOp1, int tipoOp2) {
 }
 
 void initTSR(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegments) {
+    for (int i = 0; i < 7; i++) {
+        vm->tableSeg[i].base = 0;
+        vm->tableSeg[i].size = 0;
+    }
     int j = 0;  // Indice de escritura en la tabla de segmentos
     for (int i = 0; i < cantSegments; i++) {
         if (sizes[i] != 0) {
