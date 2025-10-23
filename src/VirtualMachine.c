@@ -66,10 +66,6 @@ void parseArgs(int argc, char* argv[], VMParams* argsSalida, TVM* vm) {
         }
     }
 
-    if (!argsSalida->vmxFile) {
-        fprintf(stderr, "ERROR: No se especificó archivo .vmx\n");
-        exit(1);
-    }
     if (argsSalida->vmiFile) {
         vm->vmiFile = argsSalida->vmiFile;
     }
@@ -188,7 +184,7 @@ void readFileVMX(TVM* vm, char* fileName) {
                 exit(1);
             }
             unsigned int KSsize = (KSsizeBytes[0] << 8) | KSsizeBytes[1];
-            printf("Sizes - CS: %u, DS: %u, ES: %u, SS: %u, KS: %u\n", CSsize, DSsize, ESsize, SSsize, KSsize);
+            printf("Sizes - PS: %u, CS: %u, DS: %u, ES: %u, SS: %u, KS: %u\n", vm->tableSeg[0].size, CSsize, DSsize, ESsize, SSsize, KSsize);
             if (CSsize + DSsize + ESsize + SSsize + KSsize > 16384) {
                 printf("Error: El programa es demasiado grande para la memoria asignada.\n");
                 fclose(arch);
@@ -485,6 +481,7 @@ void executeProgram(TVM* vm) {
         unsigned int codeSegment = vm->reg[CS] >> 16;
 
         if ((vm->reg[IP] & 0x0000FFFF) >= (vm->tableSeg[codeSegment].size + vm->tableSeg[codeSegment].base)) {
+            printf("Fin de la ejecucion del programa.\n");
             exit(0);
         } else {
             if (vm->reg[IP] == -1)  // instruccion STOP
