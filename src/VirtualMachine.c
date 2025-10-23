@@ -14,8 +14,8 @@
 
 void menu(TVM* vm, int tipoOp1, int tipoOp2) {
     void (*func[])(TVM* vm, int tipoOp1, int tipoOp2) = {
-        SYS, JMP, JZ, JP, JN, JNZ, JNP, JNN, NOT, invalidOpCode, invalidOpCode, invalidOpCode,
-        invalidOpCode, invalidOpCode, invalidOpCode,
+        SYS, JMP, JZ, JP, JN, JNZ, JNP, JNN, NOT, invalidOpCode, invalidOpCode, PUSH,
+        POP, CALL, RET,
         STOP, MOV, ADD, SUB, MUL, DIV, CMP, SHL, SHR, SAR, AND, OR, XOR, SWAP, LDL, LDH,
         RND};
     func[vm->reg[OPC]](vm, tipoOp1, tipoOp2);
@@ -467,6 +467,10 @@ void readInstruction(TVM* vm) {
             TOP2 = 0;
         }
     }
+    printf("\n------------------------------\n");
+    printf("Instruccion leida: OPC=%-8s, TOP1=%d, TOP2=%d\n", MNEMONIC_NAMES[vm->reg[OPC]], TOP1, TOP2);
+    printf("OP1=%08X\n", vm->reg[OP1]);
+    printf("OP2=%08X\n", vm->reg[OP2]);
 
     menu(vm, TOP1, TOP2);
 }
@@ -477,8 +481,6 @@ void executeProgram(TVM* vm) {
         unsigned int codeSegment = vm->reg[CS] >> 16;
 
         if ((vm->reg[IP] & 0x0000FFFF) >= (vm->tableSeg[codeSegment].size + vm->tableSeg[codeSegment].base)) {
-            printf("me voy\n");
-            printf("%x", vm->reg[IP]);
             exit(0);
         } else {
             if (vm->reg[IP] == -1)  // instruccion STOP
