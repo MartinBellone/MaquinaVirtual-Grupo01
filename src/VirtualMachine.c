@@ -44,6 +44,7 @@ void parseArgs(int argc, char* argv[], VMParams* argsSalida, TVM* vm) {
     argsSalida->argc = 0;
 
     for (int i = 1; i < argc; i++) {
+        printf("Argumento %d: %s\n", i, argv[i]);
         if (strstr(argv[i], ".vmx")) {
             argsSalida->vmxFile = argv[i];
         } else if (strstr(argv[i], ".vmi")) {
@@ -56,16 +57,13 @@ void parseArgs(int argc, char* argv[], VMParams* argsSalida, TVM* vm) {
             // todo lo que sigue son parámetros del programa
             // este argv no se pasa a la VM, es un array que luego sera el param segment
             for (int j = i + 1; j < argc; j++) {
-                strcpy(argsSalida->argv[argsSalida->argc++], argv[j]);
+                argsSalida->argv[argsSalida->argc++] = strdup(argv[j]);
+                // strcpy(argsSalida->argv[argsSalida->argc++], argv[j]);
             }
             break;
         } else {
             printf("Argumento desconocido: %s\n", argv[i]);
         }
-    }
-    // mostrar param segment
-    for (int i = 0; i < argsSalida->argc; i++) {
-        printf("argv[%d]: %s\n", i, argsSalida->argv[i]);
     }
 
     if (!argsSalida->vmxFile) {
@@ -89,9 +87,11 @@ void buildParamSegment(TVM* vm, VMParams* argsSalida) {
 
     // Copiar los strings uno detrás del otro
     for (int i = 0; i < argsSalida->argc; i++) {
-        ptrs[i] = offset;                           // dirección del inicio del string i
+        ptrs[i] = offset;  // dirección del inicio del string i
+        printf("Entro al ciclo %d\n", i);
         int len = strlen(argsSalida->argv[i]) + 1;  // incluye el '\0'
         memcpy(&vm->mem[offset], argsSalida->argv[i], len);
+        free(argsSalida->argv[i]);  // liberar memoria del string copiado
         offset += len;
     }
 
@@ -112,6 +112,10 @@ void buildParamSegment(TVM* vm, VMParams* argsSalida) {
     printf("Segmento PS: Base = %d, Size = %d\n", base, offset);
     // Registrar el segmento PS
     vm->reg[PS] = base;
+
+    for (int i = 0; i < argsSalida->argc; i++) {
+        printf("Parametro %d: %s (ptr: %08X)\n", i, &vm->mem[ptrs[i]], ptrs[i]);
+    }
 }
 
 void readFileVMX(TVM* vm, char* fileName) {
@@ -214,7 +218,7 @@ void readFileVMX(TVM* vm, char* fileName) {
             sizes[3] = SSsize;      // SS
             sizes[4] = KSsize;      // KS
             sizes[5] = entryPoint;  // entry point
-            printf("Entry point: %x", entryPoint);
+            printf("Entry point: %x\n", entryPoint);
             initVm(vm, sizes, 5);
         } else {
             printf("ERROR: versión de archivo incorrecta (%d)\n", version);
