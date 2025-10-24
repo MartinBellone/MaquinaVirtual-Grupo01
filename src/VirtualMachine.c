@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <stdint.h>
 #include "VM_memory.h"
 #include "constants.h"
 #include "instr_arith.h"
@@ -22,7 +22,7 @@ void menu(TVM* vm, int tipoOp1, int tipoOp2) {
 }
 
 void initTSR(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegments) {
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 8; i++) {
         vm->tableSeg[i].base = 0;
         vm->tableSeg[i].size = 0;
     }
@@ -253,104 +253,161 @@ void readFileVMX(TVM* vm, char* fileName) {
 }
 
 void readFileVMI(TVM* vm, char* fileName) {
+    // Lee archivos .vmi según la especificación:
+    // Header (8 bytes): "VMI25" (5), versión (1), tamaño de memoria en KiB (2)
+    // Registros (32 x 4 bytes)
+    // Tabla de segmentos (8 x 4 bytes: base[2], size[2])
+    // Memoria principal (memKiB * 1024 bytes)
     FILE* arch;
     unsigned char header[6], version;
-    unsigned int dato;  // 4 bytes por registro
-    unsigned short int base, size, tamanioMem;
+    unsigned short memKiB;
+    size_t memBytes;
+    unsigned short int base, size;
 
     arch = fopen(fileName, "rb");
-    if (arch == NULL)
+    if (arch == NULL) {
         printf("ERROR al abrir el archivo %s : ", fileName);
-    else {
-        fread(header, sizeof(char), 5, arch);
-        header[5] = '\0';  // Asegurarse de que la cadena esté terminada en null
-
-        if (strcmp(header, (unsigned char*)"VMI25") != 0) {
-            printf("ERROR: formato de archivo incorrecto (header %s)\n", header);
-            exit(1);
-        }
-
-        fread(&version, sizeof(char), 1, arch);
-
-        if (version != 0x01) {
-            printf("ERROR: versión de archivo incorrecta (%d)\n", version);
-            exit(1);
-        }
-
-        fread(&tamanioMem, sizeof(tamanioMem), 1, arch);
-
-        // Lectura de registros
-        int i;
-        for (i = 0; i < 32; i++) {
-            if (fread(&dato, sizeof(int), 1, arch) != 1) {
-                printf("ERROR: no se pudo leer el registro %d\n", i);
-                exit(1);
-            }
-            vm->reg[i] = dato;
-        }
-
-        // Lectura de tabla de segmentos
-        tamanioMem = 0;
-        for (i = 0; i < 8; i++) {
-            if (fread(&base, sizeof(base), 1, arch) != 1) {
-                printf("ERROR: no se pudo leer el segmento %d\n", i);
-                exit(1);
-            }
-            if (fread(&size, sizeof(size), 1, arch) != 1) {
-                printf("ERROR: no se pudo leer el tamaño del segmento %d\n", i);
-                exit(1);
-            }
-            vm->tableSeg[i].base = base;
-            vm->tableSeg[i].size = size;
-            tamanioMem += size;
-        }
-
-        vm->mem = malloc(tamanioMem * sizeof(unsigned char));
-
-        // Lectura de memoria
-        for (i = 0; i < tamanioMem; i++) {
-            if (fread(&dato, sizeof(unsigned char), 1, arch) != 1) {
-                printf("ERROR: no se pudo leer la memoria en la posición %d\n", i);
-                exit(1);
-            }
-            vm->mem[i] = (unsigned char)dato;
-        }
-        fclose(arch);
+        return;
     }
+
+    // Header
+    if (fread(header, 1, 5, arch) != 5) {
+        printf("ERROR: no se pudo leer el identificador del header\n");
+        fclose(arch);
+        exit(1);
+    }
+    header[5] = '\0';
+    if (strcmp((char*)header, "VMI25") != 0) {
+        printf("ERROR: formato de archivo incorrecto (header %s)\n", header);
+        fclose(arch);
+        exit(1);
+    }
+
+    if (fread(&version, 1, 1, arch) != 1) {
+        printf("ERROR: no se pudo leer la versión del archivo\n");
+        fclose(arch);
+        exit(1);
+    }
+    if (version != 0x01) {
+        printf("ERROR: versión de archivo incorrecta (%d)\n", version);
+        fclose(arch);
+        exit(1);
+    }
+
+    if (fread(&memKiB, sizeof(unsigned short), 1, arch) != 1) {
+        printf("ERROR: no se pudo leer el tamaño de la memoria (KiB)\n");
+        fclose(arch);
+        exit(1);
+    }
+    memBytes = (size_t)memKiB * 1024;
+
+    // Registros
+    for (int i = 0; i < 32; i++) {
+        if (fread(&vm->reg[i], sizeof(int), 1, arch) != 1) {
+            printf("ERROR: no se pudo leer el registro %d\n", i);
+            fclose(arch);
+            exit(1);
+        }
+    }
+
+    // Tabla de segmentos
+    for (int i = 0; i < 8; i++) {
+        if (fread(&base, sizeof(base), 1, arch) != 1) {
+            printf("ERROR: no se pudo leer la base del segmento %d\n", i);
+            fclose(arch);
+            exit(1);
+        }
+        if (fread(&size, sizeof(size), 1, arch) != 1) {
+            printf("ERROR: no se pudo leer el tamaño del segmento %d\n", i);
+            fclose(arch);
+            exit(1);
+        }
+        vm->tableSeg[i].base = base;
+        vm->tableSeg[i].size = size;
+    }
+
+    // Memoria
+    vm->mem = (unsigned char*)malloc(memBytes);
+    if (!vm->mem) {
+        printf("ERROR: no se pudo asignar memoria (%zu bytes)\n", memBytes);
+        fclose(arch);
+        exit(1);
+    }
+    if (fread(vm->mem, 1, memBytes, arch) != memBytes) {
+        printf("ERROR: no se pudo leer la memoria principal (%zu bytes)\n", memBytes);
+        fclose(arch);
+        exit(1);
+    }
+
+    fclose(arch);
 }
 
 void writeFile(TVM* vm, char* fileName) {
+    // Escribe archivos .vmi según la especificación:
+    // Header (8 bytes): "VMI25" (5), versión (1), tamaño memoria en KiB (2)
+    // Registros, Tabla de segmentos, Memoria principal (memKiB*1024)
     FILE* arch;
     unsigned char header[6] = "VMI25";
     unsigned char version = 0x01;
-    if ((arch = fopen(fileName, "wb")) == NULL)
-        printf("ERROR al crear el archivo %s : ", fileName);
-    else {
-        printf("Escribiendo archivo VMI...\n");
-        // Escritura del identificador y version del archivo
-        fwrite(header, sizeof(char), 5, arch);
-        fwrite(&version, sizeof(char), 1, arch);
 
-        // Escritura de registros
-        for (int i = 0; i < 32; i++) {
-            fwrite(&vm->reg[i], sizeof(int), 1, arch);
-        }
-
-        int tamanioMem = 0;
-        // Escritura de tabla de segmentos
-        for (int i = 0; i < 8; i++) {
-            fwrite(&vm->tableSeg[i].base, sizeof(unsigned short int), 1, arch);
-            fwrite(&vm->tableSeg[i].size, sizeof(unsigned short int), 1, arch);
-            tamanioMem += vm->tableSeg[i].size;
-        }
-        printf("Tamaño de memoria a escribir: %d bytes\n", tamanioMem);
-        // Escritura de memoria
-        for (int i = 0; i < tamanioMem; i++) {
-            fwrite(&vm->mem[i], sizeof(unsigned char), 1, arch);
-        }
-
-        fclose(arch);
+    // Calcular tamaño total de memoria desde la tabla de segmentos
+    size_t totalBytes = 0;
+    for (int i = 0; i < 8; i++) {
+        totalBytes += vm->tableSeg[i].size;
     }
+    unsigned short memKiB = (unsigned short)((totalBytes + 1023) / 1024);  // redondeo hacia arriba
+    size_t memBytes = (size_t)memKiB * 1024;
+
+    arch = fopen(fileName, "wb+");
+    if (arch == NULL) {
+        printf("ERROR al crear el archivo %s : ", fileName);
+        return;
+    }
+
+    // Header
+    fwrite(header, 1, 5, arch);
+    fwrite(&version, 1, 1, arch);
+    fwrite(&memKiB, sizeof(unsigned short), 1, arch);
+
+    // Registros
+    for (int i = 0; i < 32; i++) {
+        fwrite(&vm->reg[i], sizeof(int), 1, arch);
+    }
+
+    // Tabla de segmentos
+    for (int i = 0; i < 8; i++) {
+        fwrite(&vm->tableSeg[i].base, sizeof(unsigned short int), 1, arch);
+        fwrite(&vm->tableSeg[i].size, sizeof(unsigned short int), 1, arch);
+    }
+
+    // Memoria (rellenando con 0 si es necesario para completar KiB)
+    if (vm->mem && totalBytes > 0) {
+        size_t toWrite = totalBytes;
+        if (toWrite > memBytes) toWrite = memBytes;  // seguridad
+        fwrite(vm->mem, 1, toWrite, arch);
+        // Relleno
+        size_t pad = (memBytes > toWrite) ? (memBytes - toWrite) : 0;
+        if (pad) {
+            // Escribir ceros en bloques pequeños para evitar usar mucha memoria
+            unsigned char zeroBuf[256] = {0};
+            while (pad > 0) {
+                size_t chunk = pad > sizeof(zeroBuf) ? sizeof(zeroBuf) : pad;
+                fwrite(zeroBuf, 1, chunk, arch);
+                pad -= chunk;
+            }
+        }
+    } else if (memBytes > 0) {
+        // No hay memoria cargada pero la especificación exige memBytes
+        unsigned char zeroBuf[256] = {0};
+        size_t pad = memBytes;
+        while (pad > 0) {
+            size_t chunk = pad > sizeof(zeroBuf) ? sizeof(zeroBuf) : pad;
+            fwrite(zeroBuf, 1, chunk, arch);
+            pad -= chunk;
+        }
+    }
+
+    fclose(arch);
 }
 
 void showCodeSegment(TVM* vm) {
@@ -595,7 +652,7 @@ void executeDisassembly(TVM* vm) {
         if (TOP1 == 3) {
             unsigned char codigoRegistro = ((operando1 & 0x1F0000) >> 16);
             unsigned char operandoMemoria = (operando1 & 0xFF000000) >> 24;
-            unsigned short int offset = operando1 & 0x00FFFF;
+            int offset =(int16_t) (operando1 & 0x00FFFF);
             if (tamanio1 == 0)
                 printf("l");
             else if (tamanio1 == 2)
@@ -605,7 +662,10 @@ void executeDisassembly(TVM* vm) {
             if (offset == 0)
                 printf("[%s]", REGISTER_NAMES[codigoRegistro]);
             else
-                printf("[%s + %u]", REGISTER_NAMES[codigoRegistro], offset);
+                if (offset < 0)
+                    printf("[%s%d]", REGISTER_NAMES[codigoRegistro], offset);
+                else
+                    printf("[%s+%d]", REGISTER_NAMES[codigoRegistro], offset);
             printed = 1;
         } else if (TOP1 == 2) {
             printf("%d", operando1);
@@ -635,7 +695,7 @@ void executeDisassembly(TVM* vm) {
         }
         if (TOP2 == 3) {
             unsigned char codigoRegistro = (operando2 & 0x1F0000) >> 16;
-            unsigned short int offset = operando2 & 0x00FFFF;
+            int offset = (int16_t)(operando2 & 0x00FFFF);
             if (tamanio1 == 0)
                 printf("l");
             else if (tamanio1 == 2)
@@ -645,7 +705,10 @@ void executeDisassembly(TVM* vm) {
             if (offset == 0)
                 printf("[%s]", REGISTER_NAMES[codigoRegistro]);
             else
-                printf("[%s + %u]", REGISTER_NAMES[codigoRegistro], offset);
+                if (offset < 0)
+                    printf("[%s%d]", REGISTER_NAMES[codigoRegistro], offset);
+                else
+                    printf("[%s+%d]", REGISTER_NAMES[codigoRegistro], offset);
             printed = 1;
         } else if (TOP2 == 2) {
             printf("%d", operando2);

@@ -223,6 +223,7 @@ void SYSF(TVM *vm, int sinUso, int SinUso2){
     case 'q': exit(0); break; // Salgo del programa
     case '\n': while (c == '\n'){ // Si el usuario presiona enter, sigo mostrando la ejecucion paso a paso
                  readInstruction(vm);
+                 writeFile(vm, vm->vmiFile);
                  scanf("%c",&c);
                }
                 break;

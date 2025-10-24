@@ -41,6 +41,7 @@ FIN:                        MOV EAX, [BP-8]
 MAIN:                       PUSH BP
                             MOV BP, SP
                             SUB SP, 4 ; Variable local al main para el resultado
+                            SYS 0xF
                             CALL PROMEDIO_NATURALES
                             MOV [BP-4], EAX
                             MOV EDX, BP
@@ -49,4 +50,4 @@ MAIN:                       PUSH BP
                             LDH ECX, 4
                             MOV EAX, 1
                             SYS 2
-                            STOP
+                            RET
