@@ -233,8 +233,6 @@ void SYS(TVM *vm, int tipoOp1, int tipoOp2) {
     call = call & 0x000000FF;  // Aislo los 8 bits menos significativos
     int tamanioCelda = (vm->reg[ECX] & 0xFFFF0000) >> 16;
     int cantLecturas = vm->reg[ECX] & 0x0000FFFF;
-    if (vm->reg[EAX] < 0 || vm->reg[EAX] > 0x1F)  //
-        exit(1);
     vm->reg[MAR] = tamanioCelda << 16;  // Cargo MAR con la cantidad de bytes a leer
 
     vm->reg[MAR] &= 0xFFFF0000;
