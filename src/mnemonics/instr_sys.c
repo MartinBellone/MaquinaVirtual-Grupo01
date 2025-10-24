@@ -67,6 +67,8 @@ void invalidSysCall(TVM *vm, int tipoOp1, int tipoOp2) {
 }
 
 void SYS1(TVM *vm, int cantLecturas, int tamanioCelda) {
+    if (vm->reg[EAX] < 0 || vm->reg[EAX] > 16)  // Verifico que el valor de EAX sea valido
+        exit(1);
         // Cargo LAR con la direccion de memoria a escribir
         for (int j = 0; j < cantLecturas; j++) {
             vm->reg[LAR] = vm->reg[EDX] + j * tamanioCelda;
@@ -126,6 +128,8 @@ void SYS2(TVM *vm, int cantLecturas, int tamanioCelda){
     // 0x04 2 1: interpreta octal
     // 0x02 1 1: interpreta caracteres
     // 0x01 0 1: interpreta decimal
+    if (vm->reg[EAX] < 0 || vm->reg[EAX] > 16)  //
+        exit(1);
     void (*func[])(TVM *vm, int cantLecturas) = {
         muestraDecimal,      // 0
         muestraCaracter,     // 1
