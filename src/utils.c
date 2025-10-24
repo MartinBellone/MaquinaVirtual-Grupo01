@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "VM_memory.h"
 #include "constants.h"
@@ -57,11 +58,11 @@ int getOp(TVM* vm, int registerValue) {
         return (opAux << 8) >> 8;  // extiendo el signo
     } else if (type == 0b11) {
         int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
-        int offset = opAux & 0x0000FFFF;          // en [EDX + 4] el offset es 4
+        int offset = (int16_t) ((opAux & 0x0000FFFF));          // en [EDX + 4] el offset es 4 y extiendo el signo
         unsigned int cellSize = (opAux & 0xC00000) >> 22;
         unsigned int oldSegment = vm->reg[registro] >> 16;
         vm->reg[LAR] = vm->reg[registro] + offset;  // cargo LAR con el segmento y offset del operando
-        if (vm->reg[LAR] >> 16 != oldSegment) {     // verifico si sumando me pase del segmento
+        if ((vm->reg[LAR] >> 16) != oldSegment) {
             printf("Error: Segmentation fault\n");
             exit(1);
         }
@@ -98,7 +99,7 @@ void setOp(TVM* vm, int registerValue, int value) {
     } else if (type == 0b11) {                             // memoria
         unsigned int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
         unsigned int cellSize = (opAux & 0xC00000) >> 22;
-        int offset = opAux & 0x0000FFFF;  // obtengo el offset
+        int offset = (int16_t)(opAux & 0x0000FFFF);  // obtengo el offset
         unsigned int oldSegment = vm->reg[registro] >> 16;
         vm->reg[LAR] = vm->reg[registro] + offset;  // cargo LAR con el segmento y offset del operando
         if (vm->reg[LAR] >> 16 != oldSegment) {     // verifico si sumando me pase del segmento

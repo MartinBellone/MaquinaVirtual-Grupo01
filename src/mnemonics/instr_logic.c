@@ -107,6 +107,7 @@ void NOT(TVM *vm, int tipoOp1, int tipoOp2) {
 
 void CMP(TVM *vm, int tipoOp1, int tipoOp2) {
     int value1, value2, result;
+    // Falla aca porque se esta guardando mal el operando de memoria
     value1 = getOp(vm, vm->reg[OP1]);
     value2 = getOp(vm, vm->reg[OP2]);
     result = value1 - value2;
