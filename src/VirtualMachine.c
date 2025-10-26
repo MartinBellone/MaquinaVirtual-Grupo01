@@ -265,15 +265,16 @@ void readFileVMX(TVM* vm, char* fileName) {
 
 void readFileVMI(TVM* vm, char* fileName) {
     // Lee archivos .vmi según la especificación:
-    // Header (8 bytes): "VMI25" (5), versión (1), tamaño de memoria en KiB (2)
-    // Registros (32 x 4 bytes)
-    // Tabla de segmentos (8 x 4 bytes: base[2], size[2])
+    // Header (8 bytes): "VMI25" (5), versión (1), tamaño de memoria en KiB (2, big-endian)
+    // Registros (32 x 4 bytes, big-endian)
+    // Tabla de segmentos (8 x 4 bytes: base[2], size[2], big-endian)
     // Memoria principal (memKiB * 1024 bytes)
     FILE* arch;
     unsigned char header[6], version;
     unsigned short memKiB;
     size_t memBytes;
     unsigned short int base, size;
+    unsigned char buf[4];
 
     arch = fopen(fileName, "rb");
     if (arch == NULL) {
@@ -305,34 +306,41 @@ void readFileVMI(TVM* vm, char* fileName) {
         exit(1);
     }
 
-    if (fread(&memKiB, sizeof(unsigned short), 1, arch) != 1) {
+    // Leer memKiB en big-endian (2 bytes)
+    if (fread(buf, 1, 2, arch) != 2) {
         printf("ERROR: no se pudo leer el tamaño de la memoria (KiB)\n");
         fclose(arch);
         exit(1);
     }
+    memKiB = (buf[0] << 8) | buf[1];
     memBytes = (size_t)memKiB * 1024;
 
-    // Registros
+    // Registros (big-endian, 4 bytes cada uno)
     for (int i = 0; i < 32; i++) {
-        if (fread(&vm->reg[i], sizeof(int), 1, arch) != 1) {
+        if (fread(buf, 1, 4, arch) != 4) {
             printf("ERROR: no se pudo leer el registro %d\n", i);
             fclose(arch);
             exit(1);
         }
+        vm->reg[i] = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
     }
 
-    // Tabla de segmentos
+    // Tabla de segmentos (big-endian, 2 bytes base + 2 bytes size)
     for (int i = 0; i < 8; i++) {
-        if (fread(&base, sizeof(base), 1, arch) != 1) {
+        if (fread(buf, 1, 2, arch) != 2) {
             printf("ERROR: no se pudo leer la base del segmento %d\n", i);
             fclose(arch);
             exit(1);
         }
-        if (fread(&size, sizeof(size), 1, arch) != 1) {
+        base = (buf[0] << 8) | buf[1];
+        
+        if (fread(buf, 1, 2, arch) != 2) {
             printf("ERROR: no se pudo leer el tamaño del segmento %d\n", i);
             fclose(arch);
             exit(1);
         }
+        size = (buf[0] << 8) | buf[1];
+        
         vm->tableSeg[i].base = base;
         vm->tableSeg[i].size = size;
     }
@@ -354,12 +362,15 @@ void readFileVMI(TVM* vm, char* fileName) {
 }
 
 void writeFileVMI(TVM* vm, char* fileName) {
-    // Escribe archivos .vmi según la especificación:
+    // Escribe archivos .vmi según la especificación en big-endian:
     // Header (8 bytes): "VMI25" (5), versión (1), tamaño memoria en KiB (2)
-    // Registros, Tabla de segmentos, Memoria principal (memKiB*1024)
+    // Registros (32 x 4 bytes, big-endian)
+    // Tabla de segmentos (8 x 4 bytes: base[2], size[2], big-endian)
+    // Memoria principal (memKiB*1024 bytes)
     FILE* arch;
     unsigned char header[6] = "VMI25";
     unsigned char version = 0x01;
+    unsigned char buf[4];
 
     // Calcular tamaño total de memoria desde la tabla de segmentos
     size_t totalBytes = 0;
@@ -377,17 +388,32 @@ void writeFileVMI(TVM* vm, char* fileName) {
     // Header
     fwrite(header, 1, 5, arch);
     fwrite(&version, 1, 1, arch);
-    fwrite(&memKiB, sizeof(unsigned short), 1, arch);
+    
+    // Escribir memKiB en big-endian (2 bytes)
+    buf[0] = (memKiB >> 8) & 0xFF;
+    buf[1] = memKiB & 0xFF;
+    fwrite(buf, 1, 2, arch);
 
-    // Registros
+    // Registros (big-endian, 4 bytes cada uno)
     for (int i = 0; i < 32; i++) {
-        fwrite(&vm->reg[i], sizeof(int), 1, arch);
+        buf[0] = (vm->reg[i] >> 24) & 0xFF;
+        buf[1] = (vm->reg[i] >> 16) & 0xFF;
+        buf[2] = (vm->reg[i] >> 8) & 0xFF;
+        buf[3] = vm->reg[i] & 0xFF;
+        fwrite(buf, 1, 4, arch);
     }
 
-    // Tabla de segmentos
+    // Tabla de segmentos (big-endian, 2 bytes base + 2 bytes size)
     for (int i = 0; i < 8; i++) {
-        fwrite(&vm->tableSeg[i].base, sizeof(unsigned short int), 1, arch);
-        fwrite(&vm->tableSeg[i].size, sizeof(unsigned short int), 1, arch);
+        // Base (2 bytes, big-endian)
+        buf[0] = (vm->tableSeg[i].base >> 8) & 0xFF;
+        buf[1] = vm->tableSeg[i].base & 0xFF;
+        fwrite(buf, 1, 2, arch);
+        
+        // Size (2 bytes, big-endian)
+        buf[0] = (vm->tableSeg[i].size >> 8) & 0xFF;
+        buf[1] = vm->tableSeg[i].size & 0xFF;
+        fwrite(buf, 1, 2, arch);
     }
 
     // Memoria (rellenando con 0 si es necesario para completar KiB)
