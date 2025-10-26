@@ -22,9 +22,6 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    // Mostrar el segmento de código cargado
-    // showCodeSegment(&vm);
-
     if (params.disassembly)
         executeDisassembly(&vm);
 

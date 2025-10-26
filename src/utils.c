@@ -1,8 +1,8 @@
 #include "utils.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 
 #include "VM_memory.h"
 #include "constants.h"
@@ -57,8 +57,8 @@ int getOp(TVM* vm, int registerValue) {
     } else if (type == 0b10) {     // inmediato
         return (opAux << 8) >> 8;  // extiendo el signo
     } else if (type == 0b11) {
-        int registro = (opAux & 0x1F0000) >> 16;  // obtengo el registro
-        int offset = (int16_t) ((opAux & 0x0000FFFF));          // en [EDX + 4] el offset es 4 y extiendo el signo
+        int registro = (opAux & 0x1F0000) >> 16;       // obtengo el registro
+        int offset = (int16_t)((opAux & 0x0000FFFF));  // en [EDX + 4] el offset es 4 y extiendo el signo
         unsigned int cellSize = (opAux & 0xC00000) >> 22;
         unsigned int oldSegment = vm->reg[registro] >> 16;
         vm->reg[LAR] = vm->reg[registro] + offset;  // cargo LAR con el segmento y offset del operando
@@ -120,4 +120,58 @@ void setOp(TVM* vm, int registerValue, int value) {
 void invalidOpCode(TVM* vm, int tipoOp1, int tipoOp2) {
     printf("Error: Invalid Mnemonic Code");
     exit(1);
+}
+void showRegisters(TVM* vm) {
+    printf("\n----- Registros -----\n");
+    for (int i = 0; i < 32; i++) {
+        printf("%s: %08X\n", REGISTER_NAMES[i], vm->reg[i]);
+    }
+}
+
+void showCodeSegment(TVM* vm) {
+    printf("\n----- Segmento de Código -----\n");
+    unsigned int base = vm->tableSeg[(vm->reg[CS] >> 16)].base;
+    unsigned int size = vm->tableSeg[(vm->reg[CS] >> 16)].size;
+    printf("Tamaño del segmento de código: %u bytes\n", size);
+    for (int i = 0; i < size; i++) {
+        printf("[%04x]: %X\n", base + i, vm->mem[base + i]);
+    }
+}
+void showParamSegment(TVM* vm) {
+    if (vm->reg[PS] == -1) {
+        printf("No hay segmento de parámetros.\n");
+        return;
+    }
+    printf("\n----- Segmento de Parámetros -----\n");
+    unsigned int base = vm->tableSeg[0].base;
+    unsigned int size = vm->tableSeg[0].size;
+
+    printf("Tamaño del segmento de parámetros: %u bytes\n", size);
+    printf("Base del segmento de parámetros: %u\n", base);
+
+    for (unsigned int i = 0; i < size; i++) {
+        // Mostrar string
+        printf("Parametro en [%04x]: %02X\n", base + i, vm->mem[base + i]);
+    }
+}
+void showStackSegment(TVM* vm) {
+    if (vm->reg[SS] == -1) {
+        printf("No hay segmento de stack.\n");
+        return;
+    }
+    printf("\n----- Segmento de Stack -----\n");
+    unsigned int base = vm->tableSeg[vm->reg[SS] >> 16].base;
+    unsigned int size = vm->tableSeg[vm->reg[SS] >> 16].size;
+
+    for (unsigned int i = 0; i < size; i++) {
+        printf("[%04x]: %02X\n", base + i, vm->mem[base + i]);
+    }
+}
+void showTSR(TVM* vm) {
+    printf("\n----- Tabla de Segmentos -----\n");
+    printf("Segmento |   Base   |   Size   \n");
+    printf("-------------------------------\n");
+    for (int i = 0; i < 8; i++) {
+        printf("   %d    | %06X | %06X \n", i, vm->tableSeg[i].base, vm->tableSeg[i].size);
+    }
 }

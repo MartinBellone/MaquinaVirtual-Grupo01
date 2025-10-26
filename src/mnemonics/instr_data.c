@@ -1,8 +1,9 @@
 #include "instr_data.h"
-#include "VM_memory.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "VM_memory.h"
 #include "constants.h"
 #include "utils.h"
 
@@ -47,6 +48,7 @@ void PUSH(TVM* vm, int tipoOp1, int tipoOp2) {
         exit(1);
     }
     value1 = getOp(vm, vm->reg[OP1]);
+
     // Extiendo el signo
     signExtend(value1, 4);
     // Almaceno el valor en la pila (memoria)
@@ -59,8 +61,6 @@ void PUSH(TVM* vm, int tipoOp1, int tipoOp2) {
 }
 
 void POP(TVM* vm, int tipoOp1, int tipoOp2) {
-    printf("SP antes de POP: %08X\n", vm->reg[SP]);
-
     if ((vm->reg[SP] && 0x0000FFFF) >= (vm->tableSeg[vm->reg[SS] >> 16].size - 3)) {
         printf("Error: Stack underflow pop.\n");
         exit(1);
