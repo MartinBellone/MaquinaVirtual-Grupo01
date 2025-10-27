@@ -6,6 +6,7 @@ int signExtend(unsigned int value, int nbytes);
 void setOp(TVM* vm, int registerValue, int value);
 int getOp(TVM* vm, int registerValue);
 
+void showTSR(TVM* vm);
 void showRegisters(TVM* vm);
 void showCodeSegment(TVM* vm);
 void showParamSegment(TVM* vm);

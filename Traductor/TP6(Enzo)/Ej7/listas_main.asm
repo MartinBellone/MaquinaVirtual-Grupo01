@@ -1,51 +1,5 @@
-; Invierte el orden de una lista
-; PUSH <puntero al head>
-; CALL LIST_INVERT
-; ADD SP, 4
-; Devuelve en EAX el puntero al head de la lista invertida
-
 \\STACK 1024
 \\include  "list.asm"
-
-NULL EQU -1
-VAL EQU 0
-SIG EQU 4
-
-LIST_INVERT:    PUSH BP
-                MOV BP, SP
-                PUSH EDX
-                PUSH EBX
-                PUSH EEX
-                PUSH EFX
-                MOV EDX, [BP + 8] ; EDX apunta al head
-
-                CMP [EDX], NULL
-                JZ FIN
-
-                CMP [EDX + SIG], NULL ; Si tengo un solo nodo no debo cambiar el orden
-                JZ FIN
-
-                MOV EBX, [EDX] ; EBX apunta al primer nodo
-                MOV EEX, [EBX + SIG] ; EEX apunta al segundo nodo
-                MOV [EBX + SIG], NULL ; El primer nodo ahora es el ultimo
-
-CICLO:          CMP EEX, NULL
-                JZ FIN
-                MOV EFX, EEX
-                MOV EEX, [EEX + SIG]
-                MOV [EFX + SIG], EBX
-                MOV EBX, EFX
-                JMP CICLO
-
-
-FIN:            MOV EAX, EBX
-                POP EFX
-                POP EEX
-                POP EBX
-                POP EDX
-                MOV SP, BP
-                POP BP
-                RET
 
 lista_orig  equ     "lista original:\n"
 lista_nuev  equ     "lista nueva:\n"
@@ -138,3 +92,9 @@ main:       push    bp
             mov     sp, bp 
             pop     bp
             ret
+
+
+
+            
+
+

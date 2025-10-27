@@ -48,7 +48,7 @@ void parseArgs(int argc, char* argv[], VMParams* argsSalida, TVM* vm) {
     argsSalida->argc = 0;
 
     for (int i = 1; i < argc; i++) {
-        printf("Argumento %d: %s\n", i, argv[i]);
+        // printf("Argumento %d: %s\n", i, argv[i]);
         if (strstr(argv[i], ".vmx")) {
             argsSalida->vmxFile = argv[i];
         } else if (strstr(argv[i], ".vmi")) {
@@ -259,6 +259,7 @@ void readFileVMX(TVM* vm, char* fileName) {
             }
         }
         fclose(arch);
+        showTSR(vm);
     }
 }
 
@@ -592,10 +593,10 @@ void readInstruction(TVM* vm) {
     }
 
     // showStackSegment(vm);
-    // printf("\n------------------------------\n");
-    // printf("Instruccion leida: Mnemonico=%-8s, TOP1=%d, TOP2=%d\n", MNEMONIC_NAMES[vm->reg[OPC]], TOP1, TOP2);
-    // printf("OP1=%08X\n", vm->reg[OP1]);
-    // printf("OP2=%08X\n", vm->reg[OP2]);
+    printf("\n------------------------------\n");
+    printf("Instruccion leida: Mnemonico=%-8s, TOP1=%d, TOP2=%d\n", MNEMONIC_NAMES[vm->reg[OPC]], TOP1, TOP2);
+    printf("OP1=%08X\n", vm->reg[OP1]);
+    printf("OP2=%08X\n", vm->reg[OP2]);
 
     menu(vm, TOP1, TOP2);
 }
@@ -650,7 +651,7 @@ void executeDisassembly(TVM* vm) {
         unsigned char instruction, registro[4], codigoRegistro, aux[4];
         int operando1, operando2, tamanio1, tamanio2, secR1, secR2;
         int TOP1, TOP2, opc, i;
-
+        strcpy(aux, "");
         if (ip == ((vm->reg[IP] & 0x0000FFFF) + vm->tableSeg[vm->reg[CS] >> 16].base)) {
             printf("-> ");
         } else {
@@ -704,10 +705,7 @@ void executeDisassembly(TVM* vm) {
             ip += 3;
         } else
             operando1 = 0;
-        // printf("TOP1=%d TOP2=%d\n", TOP1, TOP2);
-        // printf("OP1=%08X \t", operando1);
-        // printf("OP2=%08X \t", operando2);
-        // printf("\nSecR1=%d, SecR2=%d\t\n", secR1, secR2);
+
         // Operandos alineados
         int printed = 0;
         if (TOP1 == 3) {
@@ -731,20 +729,22 @@ void executeDisassembly(TVM* vm) {
             printf("%d", operando1);
             printed = 1;
         } else if (TOP1 == 1) {
-            unsigned char codigoRegistro = operando1;
+            unsigned char codigoRegistro = operando1 & 0x1F;
             // printf("Fallo aca!");
             // printf("este es el codigo de registro: %d", codigoRegistro);
             if (secR1 == 0)
                 printf("%s", REGISTER_NAMES[codigoRegistro]);
             else {
                 strcpy(registro, REGISTER_NAMES[codigoRegistro]);
-                strcpy(aux, (unsigned char*)registro[1]);
+
+                aux[0] = registro[1];
                 if (secR1 == 1)
-                    strcat(aux, "L");
+                    aux[1] = 'L';
                 else if (secR1 == 2)
-                    strcat(aux, "H");
+                    aux[1] = 'H';
                 else
-                    strcat(aux, "X");
+                    aux[1] = 'X';
+                aux[2] = '\0';
                 printf("%s", aux);
             }
             printed = 1;
@@ -773,18 +773,20 @@ void executeDisassembly(TVM* vm) {
             printf("%d", operando2);
             printed = 1;
         } else if (TOP2 == 1) {
-            unsigned char codigoRegistro = operando2;
+            unsigned char codigoRegistro = operando2 & 0x1F;
             if (secR2 == 0)
                 printf("%s", REGISTER_NAMES[codigoRegistro]);
             else {
                 strcpy(registro, REGISTER_NAMES[codigoRegistro]);
-                strcpy(aux, (unsigned char*)registro[1]);
+                aux[0] = registro[1];
+                // strcpy(aux, (unsigned char*)registro[1]);
                 if (secR2 == 1)
-                    strcat(aux, "L");
+                    aux[1] = 'L';
                 else if (secR2 == 2)
-                    strcat(aux, "H");
+                    aux[1] = 'H';
                 else
-                    strcat(aux, "X");
+                    aux[1] = 'X';
+                aux[2] = '\0';
                 printf("%s", aux);
             }
             printed = 1;

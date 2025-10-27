@@ -129,7 +129,7 @@ void SYS2(TVM* vm, int cantLecturas, int tamanioCelda) {
     // 0x04 2 1: interpreta octal
     // 0x02 1 1: interpreta caracteres
     // 0x01 0 1: interpreta decimal
-    if (vm->reg[EAX] < 0 || vm->reg[EAX] > 16)  //
+    if (vm->reg[EAX] < 0 || vm->reg[EAX] > 31)  //
         exit(1);
     void (*func[])(TVM* vm, int cantLecturas) = {
         muestraDecimal,      // 0
