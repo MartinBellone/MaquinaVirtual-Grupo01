@@ -3,3 +3,4 @@ vm.exe
 Testing.exe
 build
 bin
+*.vmi

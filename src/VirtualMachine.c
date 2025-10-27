@@ -82,7 +82,7 @@ void buildParamSegment(TVM* vm, VMParams* argsSalida) {
 
     if (argsSalida->argc == 0) {
         vm->reg[PS] = -1;
-        printf("No hay parámetros para el segmento PS.\n");
+        // printf("No hay parámetros para el segmento PS.\n");
         return;
     }
 
@@ -92,8 +92,7 @@ void buildParamSegment(TVM* vm, VMParams* argsSalida) {
         // printf("Entro al ciclo %d\n", i);
         int len = strlen(argsSalida->argv[i]) + 1;  // incluye el '\0'
         memcpy(&vm->mem[offset], argsSalida->argv[i], len);
-        // printf("Guardo: %s\n", &vm->mem[offset]);
-        free(argsSalida->argv[i]);  // liberar memoria del string copiado
+        // free(argsSalida->argv[i]);  // liberar memoria del string copiado
         offset += len;
     }
 
@@ -112,7 +111,6 @@ void buildParamSegment(TVM* vm, VMParams* argsSalida) {
         vm->mem[offset + 3] = ptrs[i] & 0xFF;
         offset += 4;
     }
-
     // Configurar el segmento en la tabla
     vm->tableSeg[0].base = base;
     vm->tableSeg[0].size = offset;
@@ -131,14 +129,15 @@ void readFileVMX(TVM* vm, char* fileName) {
     unsigned char c, header[6], version;
     unsigned int CSsize;
     unsigned short int sizes[7] = {0};  // tamanos de los segmentos
+
     arch = fopen(fileName, "rb");
-    if (arch == NULL)
+    if (arch == NULL) {
         printf("ERROR al abrir el archivo \"%s\"\n", fileName);
-    else {
+        exit(1);
+    } else {
         // Lectura del identificador y version del archivo
         fread(header, sizeof(char), 5, arch);
         header[5] = '\0';  // Asegurarse de que la cadena esté terminada en null
-
         if (strcmp(header, (unsigned char*)"VMX25") != 0) {
             printf("ERROR: formato de archivo incorrecto (header %s)\n", header);
             exit(1);
@@ -195,7 +194,7 @@ void readFileVMX(TVM* vm, char* fileName) {
                 exit(1);
             }
             unsigned int KSsize = (KSsizeBytes[0] << 8) | KSsizeBytes[1];
-            printf("Sizes - PS: %u, CS: %u, DS: %u, ES: %u, SS: %u, KS: %u\n", vm->tableSeg[0].size, CSsize, DSsize, ESsize, SSsize, KSsize);
+            // printf("Sizes - PS: %u, CS: %u, DS: %u, ES: %u, SS: %u, KS: %u\n", vm->tableSeg[0].size, CSsize, DSsize, ESsize, SSsize, KSsize);
             if (CSsize + DSsize + ESsize + SSsize + KSsize > 16384) {
                 printf("Error: El programa es demasiado grande para la memoria asignada.\n");
                 fclose(arch);
@@ -229,7 +228,7 @@ void readFileVMX(TVM* vm, char* fileName) {
             else
                 sizes[5] = vm->tableSeg[0].size;  // PS
             sizes[6] = entryPoint;                // entry point
-            printf("Entry point: %x\n", entryPoint);
+            // printf("Entry point: %x\n", entryPoint);
             initVm(vm, sizes, 5);
         } else {
             printf("ERROR: versión de archivo incorrecta (%d)\n", version);
@@ -333,14 +332,14 @@ void readFileVMI(TVM* vm, char* fileName) {
             exit(1);
         }
         base = (buf[0] << 8) | buf[1];
-        
+
         if (fread(buf, 1, 2, arch) != 2) {
             printf("ERROR: no se pudo leer el tamaño del segmento %d\n", i);
             fclose(arch);
             exit(1);
         }
         size = (buf[0] << 8) | buf[1];
-        
+
         vm->tableSeg[i].base = base;
         vm->tableSeg[i].size = size;
     }
@@ -388,7 +387,7 @@ void writeFileVMI(TVM* vm, char* fileName) {
     // Header
     fwrite(header, 1, 5, arch);
     fwrite(&version, 1, 1, arch);
-    
+
     // Escribir memKiB en big-endian (2 bytes)
     buf[0] = (memKiB >> 8) & 0xFF;
     buf[1] = memKiB & 0xFF;
@@ -409,7 +408,7 @@ void writeFileVMI(TVM* vm, char* fileName) {
         buf[0] = (vm->tableSeg[i].base >> 8) & 0xFF;
         buf[1] = vm->tableSeg[i].base & 0xFF;
         fwrite(buf, 1, 2, arch);
-        
+
         // Size (2 bytes, big-endian)
         buf[0] = (vm->tableSeg[i].size >> 8) & 0xFF;
         buf[1] = vm->tableSeg[i].size & 0xFF;
@@ -477,7 +476,7 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
         } else
             vm->reg[26 + i] = -1;  // segmento no usado
         totalSize += sizes[i];
-        printf("Registro %d inicializado con valor %x\n", 26 + i, vm->reg[26 + i]);
+        // printf("Registro %d inicializado con valor %x\n", 26 + i, vm->reg[26 + i]);
     }
     unsigned char* oldMem = vm->mem;
     vm->mem = (unsigned char*)malloc(totalSize * sizeof(unsigned char));
@@ -488,7 +487,7 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
         vm->mem[paramSize] = 0;  // Asegurar que el siguiente byte esté limpio
         free(oldMem);
     }
-    printf("Memoria de %d bytes asignada a la VM.\n", totalSize);
+    // printf("Memoria de %d bytes asignada a la VM.\n", totalSize);
     if (vm->reg[SS] != -1) {
         unsigned int codeSegment = vm->reg[CS] >> 16;
         vm->reg[IP] = codeSegment;
