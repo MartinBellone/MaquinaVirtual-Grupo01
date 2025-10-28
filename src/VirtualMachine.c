@@ -229,7 +229,7 @@ void readFileVMX(TVM* vm, char* fileName) {
                 sizes[5] = vm->tableSeg[0].size;  // PS
             sizes[6] = entryPoint;                // entry point
             // printf("Entry point: %x\n", entryPoint);
-            initVm(vm, sizes, 5);
+            initVm(vm, sizes, 6);
         } else {
             printf("ERROR: versión de archivo incorrecta (%d)\n", version);
             exit(1);
@@ -240,7 +240,7 @@ void readFileVMX(TVM* vm, char* fileName) {
         unsigned int codeSegment = vm->reg[CS] >> 16;
         i = vm->tableSeg[codeSegment].base;
         int cantLecturas = 0;
-
+        showTSR(vm);
         while (fread(&c, sizeof(char), 1, arch) == 1 && cantLecturas < CSsize) {
             vm->mem[i] = c;
             i++;
@@ -250,10 +250,8 @@ void readFileVMX(TVM* vm, char* fileName) {
         showTSR(vm);
         if (version == 2 && vm->reg[KS] != -1) {
             // debo inicializar el segmento de constantes
-            printf("Cargando segmento de constantes...\n");
             i = vm->tableSeg[KSsegment].base;
             vm->mem[i] = c;  // leo el byte que quedo pendiente
-            printf("Cargando segmento de constantes...\n");
             i++;
             while (fread(&c, sizeof(char), 1, arch) == 1) {
                 vm->mem[i] = c;
@@ -475,6 +473,7 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
     }
 
     cantSegments -= j;  // resto los segmentos ya asignados
+
     for (int i = 0; i < cantSegments; i++) {
         if (sizes[i] != 0) {
             vm->reg[26 + i] = j << 16;
@@ -485,12 +484,14 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
     }
     unsigned char* oldMem = vm->mem;
     vm->mem = (unsigned char*)malloc(totalSize * sizeof(unsigned char));
+
     if (oldMem) {
         // Copiar el contenido del segmento de parámetros si existía
         unsigned int paramSize = vm->tableSeg[0].size;
         memcpy(vm->mem, oldMem, paramSize);
         vm->mem[paramSize] = 0;  // Asegurar que el siguiente byte esté limpio
-        free(oldMem);
+
+        // free(oldMem);
     }
     // printf("Memoria de %d bytes asignada a la VM.\n", totalSize);
     if (vm->reg[SS] != -1) {
@@ -508,6 +509,7 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
         value = vm->argv;
 
         vm->reg[LAR] = vm->reg[SP];  // cargo el registro LAR con el stack segment
+
         unsigned int physAddr = convertToPhysicalAddress(vm);
 
         vm->mem[physAddr] = (value >> 24) & 0xFF;      // byte más significativo
