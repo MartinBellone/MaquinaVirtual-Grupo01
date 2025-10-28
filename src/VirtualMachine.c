@@ -247,12 +247,13 @@ void readFileVMX(TVM* vm, char* fileName) {
             cantLecturas++;
         }
         unsigned int KSsegment = vm->reg[KS] >> 16;  // el registro KS existe aunque la version sea 1
-
+        showTSR(vm);
         if (version == 2 && vm->reg[KS] != -1) {
             // debo inicializar el segmento de constantes
-
+            printf("Cargando segmento de constantes...\n");
             i = vm->tableSeg[KSsegment].base;
             vm->mem[i] = c;  // leo el byte que quedo pendiente
+            printf("Cargando segmento de constantes...\n");
             i++;
             while (fread(&c, sizeof(char), 1, arch) == 1) {
                 vm->mem[i] = c;
@@ -459,6 +460,8 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
             vm->reg[KS] = j << 16;
             j++;
             totalSize += sizes[4];
+        } else {
+            vm->reg[KS] = -1;  // segmento no usado
         }
 
     } else {
@@ -466,6 +469,8 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
             vm->reg[KS] = j << 16;
             j++;
             totalSize += sizes[4];
+        } else {
+            vm->reg[KS] = -1;  // segmento no usado
         }
     }
 
