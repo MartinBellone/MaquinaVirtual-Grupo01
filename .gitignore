@@ -2,4 +2,4 @@
 vm.exe
 Testing.exe
 build
-*.vmi
+.vmi
