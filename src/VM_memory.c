@@ -9,15 +9,13 @@
 unsigned int convertToPhysicalAddress(TVM* vm) {
     int segment, baseSeg, offSeg;
     segment = (vm->reg[LAR] & 0xFFFF0000) >> 16;  // obtengo el segmento
-    printf("LAR: 0x%08X, Segment: %d\n", vm->reg[LAR], segment);
-    if (segment > 7) {  // si el segmento es mayor a 7, error
+    if (segment > 7) {                            // si el segmento es mayor a 7, error
         printf("Error: Segmentation fault.\n");
         exit(1);
     }
 
     baseSeg = vm->tableSeg[segment].base;
     offSeg = vm->reg[LAR] & 0x0000FFFF;
-    printf("Base: 0x%04X, Offset: 0x%04X\n", baseSeg, offSeg);
     int result = 0x00000000 | (baseSeg + offSeg);
     if (result > (baseSeg + vm->tableSeg[segment].size - 1)) {  // si la direccion fisica es mayor a la base + size del segmento, error
         printf("Error: Segmentation fault.\n");

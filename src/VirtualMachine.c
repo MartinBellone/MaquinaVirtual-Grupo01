@@ -248,8 +248,9 @@ void readFileVMX(TVM* vm, char* fileName) {
         }
         unsigned int KSsegment = vm->reg[KS] >> 16;  // el registro KS existe aunque la version sea 1
 
-        if (version == 2 && vm->reg[KS] > 0) {
+        if (version == 2 && vm->reg[KS] != -1) {
             // debo inicializar el segmento de constantes
+
             i = vm->tableSeg[KSsegment].base;
             vm->mem[i] = c;  // leo el byte que quedo pendiente
             i++;
@@ -259,7 +260,6 @@ void readFileVMX(TVM* vm, char* fileName) {
             }
         }
         fclose(arch);
-        showTSR(vm);
     }
 }
 
@@ -470,14 +470,13 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
     }
 
     cantSegments -= j;  // resto los segmentos ya asignados
-    for (int i = 0; i <= cantSegments; i++) {
+    for (int i = 0; i < cantSegments; i++) {
         if (sizes[i] != 0) {
             vm->reg[26 + i] = j << 16;
             j++;
         } else
             vm->reg[26 + i] = -1;  // segmento no usado
         totalSize += sizes[i];
-        // printf("Registro %d inicializado con valor %x\n", 26 + i, vm->reg[26 + i]);
     }
     unsigned char* oldMem = vm->mem;
     vm->mem = (unsigned char*)malloc(totalSize * sizeof(unsigned char));
@@ -593,10 +592,10 @@ void readInstruction(TVM* vm) {
     }
 
     // showStackSegment(vm);
-    printf("\n------------------------------\n");
-    printf("Instruccion leida: Mnemonico=%-8s, TOP1=%d, TOP2=%d\n", MNEMONIC_NAMES[vm->reg[OPC]], TOP1, TOP2);
-    printf("OP1=%08X\n", vm->reg[OP1]);
-    printf("OP2=%08X\n", vm->reg[OP2]);
+    // printf("\n------------------------------\n");
+    // printf("Instruccion leida: Mnemonico=%-8s, TOP1=%d, TOP2=%d\n", MNEMONIC_NAMES[vm->reg[OPC]], TOP1, TOP2);
+    // printf("OP1=%08X\n", vm->reg[OP1]);
+    // printf("OP2=%08X\n", vm->reg[OP2]);
 
     menu(vm, TOP1, TOP2);
 }

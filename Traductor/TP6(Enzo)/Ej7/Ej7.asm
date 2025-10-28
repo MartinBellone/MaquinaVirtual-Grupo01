@@ -53,7 +53,7 @@ main:       push    bp
             push    ebx
 
             sys     0xF
-
+            sys     0x7
             call    heap_init ;inicializa heap
 
             ; declaro un lista simplemente enlazada (sll)
@@ -63,7 +63,9 @@ main:       push    bp
             sub     ebx, head           ; ebx = &head
 
             sys     0xF
-            
+            push    [bp-head]
+            call    list_print          ; list_print (head)
+            add     sp, 4  
             push    10
             call    nodo_nuevo
             add     sp, 4
@@ -71,6 +73,9 @@ main:       push    bp
             mov     ebx,[ebx]           ;
             add     ebx,sig             ; ebx = &nodo->sig
 
+            push    [bp-head]
+            call    list_print          ; list_print (head)
+            add     sp, 4  
             sys     0xF            
 
             push    20
@@ -130,6 +135,17 @@ main:       push    bp
             add     sp, 4  
 
             sys     0xF
+
+            ; PUSH <puntero al head>
+; CALL LIST_INVERT
+; ADD SP, 4
+            PUSH [BP-head]
+            CALL LIST_INVERT
+            add  sp,4
+
+            push eax
+            call list_print
+            add sp,4
 
             pop     ebx
             mov     sp, bp 

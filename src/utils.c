@@ -89,11 +89,11 @@ void setOp(TVM* vm, int registerValue, int value) {
         if (sectRegister == 0)
             vm->reg[registro] = value;
         else if (sectRegister == 1)
-            vm->reg[registro] = (vm->reg[registro] & 0x000000FF) | (value & 0x000000FF);
+            vm->reg[registro] = (vm->reg[registro] & 0xFFFFFF00) | (value & 0x000000FF);
         else if (sectRegister == 2)
-            vm->reg[registro] = (vm->reg[registro] & 0x0000FF00) | (value & 0x0000FF00);
+            vm->reg[registro] = (vm->reg[registro] & 0xFFFF00FF) | (value & 0x0000FF00);
         else
-            vm->reg[registro] = (vm->reg[registro] & 0x0000FFFF) | (value & 0x0000FFFF);
+            vm->reg[registro] = (vm->reg[registro] & 0xFFFF0000) | (value & 0x0000FFFF);
     } else if (type == 0b10) {  // inmediato
         exit(1);
     } else if (type == 0b11) {                             // memoria

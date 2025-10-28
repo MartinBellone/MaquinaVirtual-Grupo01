@@ -208,14 +208,20 @@ void SYS4(TVM* vm, int tipoOp1, int tipoOp2) {
 
         vm->reg[MAR] = 0x00010000;  // leo 1 byte
         readMemory(vm);
+        // printf("[%04X]: ", vm->reg[MAR] & 0x0000FFFF);
         c = (unsigned char)(vm->reg[MBR] & 0x000000FF);
-        printf("%c", c);
+        if (c >= 32 && c <= 126)
+            printf("%c", c);
+        else
+            printf(".");
+
         i++;
     } while (c != '\0');
+    printf("\n");
 }
 
 void SYS7(TVM* vm, int sinUso1, int sinUso2) {
-    fflush(stdout);
+    system("cls || clear");
 }
 
 void SYSF(TVM* vm, int sinUso, int SinUso2) {
