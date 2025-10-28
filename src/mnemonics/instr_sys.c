@@ -197,7 +197,7 @@ void SYS4(TVM* vm, int tipoOp1, int tipoOp2) {
     segmento = vm->reg[EDX] >> 16;
     i = 0;
     vm->reg[LAR] = vm->reg[EDX] + i * 1;
-    printf("\n[%04X]: ", convertToPhysicalAddress(vm));
+    // printf("\n[%04X]: ", convertToPhysicalAddress(vm));
     do {
         vm->reg[LAR] = vm->reg[EDX] + i * 1;
         tamanioSegmento = vm->tableSeg[segmento].size;
@@ -210,14 +210,14 @@ void SYS4(TVM* vm, int tipoOp1, int tipoOp2) {
         readMemory(vm);
         // printf("[%04X]: ", vm->reg[MAR] & 0x0000FFFF);
         c = (unsigned char)(vm->reg[MBR] & 0x000000FF);
-        if (c >= 32 && c <= 126)
-            printf("%c", c);
-        else
-            printf(".");
+        printf("%c", c);
+        // if (c >= 32 && c <= 126)
+        //     printf("%c", c);
+        // else
+        //     printf(".");
 
         i++;
     } while (c != '\0');
-    printf("\n");
 }
 
 void SYS7(TVM* vm, int sinUso1, int sinUso2) {
