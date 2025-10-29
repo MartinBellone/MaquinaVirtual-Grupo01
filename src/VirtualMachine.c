@@ -240,14 +240,12 @@ void readFileVMX(TVM* vm, char* fileName) {
         unsigned int codeSegment = vm->reg[CS] >> 16;
         i = vm->tableSeg[codeSegment].base;
         int cantLecturas = 0;
-        showTSR(vm);
         while (fread(&c, sizeof(char), 1, arch) == 1 && cantLecturas < CSsize) {
             vm->mem[i] = c;
             i++;
             cantLecturas++;
         }
         unsigned int KSsegment = vm->reg[KS] >> 16;  // el registro KS existe aunque la version sea 1
-        showTSR(vm);
         if (version == 2 && vm->reg[KS] != -1) {
             // debo inicializar el segmento de constantes
             i = vm->tableSeg[KSsegment].base;
@@ -471,13 +469,14 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
             vm->reg[KS] = -1;  // segmento no usado
         }
     }
-
-    cantSegments -= j;  // resto los segmentos ya asignados
+    if (j == 1 || j == 2)
+        cantSegments -= 2;  // resto el segmento de parametros ya asignado
 
     for (int i = 0; i < cantSegments; i++) {
         if (sizes[i] != 0) {
             vm->reg[26 + i] = j << 16;
             j++;
+            printf("Registro %s asignado al segmento %d con base %04X y tamanio %d\n", REGISTER_NAMES[26 + i], j - 1, vm->reg[26 + i] >> 16, sizes[i]);
         } else
             vm->reg[26 + i] = -1;  // segmento no usado
         totalSize += sizes[i];
@@ -598,7 +597,6 @@ void readInstruction(TVM* vm) {
         }
     }
 
-    // showStackSegment(vm);
     // printf("\n------------------------------\n");
     // printf("Instruccion leida: Mnemonico=%-8s, TOP1=%d, TOP2=%d\n", MNEMONIC_NAMES[vm->reg[OPC]], TOP1, TOP2);
     // printf("OP1=%08X\n", vm->reg[OP1]);
@@ -613,7 +611,6 @@ void executeProgram(TVM* vm) {
         unsigned int codeSegment = vm->reg[CS] >> 16;
 
         if ((vm->reg[IP] & 0x0000FFFF) >= (vm->tableSeg[codeSegment].size + vm->tableSeg[codeSegment].base)) {
-            printf("Fin de la ejecucion del programa.\n");
             exit(0);
         } else {
             if (vm->reg[IP] == -1)  // instruccion STOP

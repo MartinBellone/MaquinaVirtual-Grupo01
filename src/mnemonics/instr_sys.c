@@ -75,9 +75,9 @@ void SYS1(TVM* vm, int cantLecturas, int tamanioCelda) {
         vm->reg[LAR] = vm->reg[EDX] + j * tamanioCelda;
         vm->reg[MAR] = tamanioCelda << 16;
 
+        printf("[%04X]: ", convertToPhysicalAddress(vm));
         if (vm->reg[EAX] == 1) {
             char valor;
-            printf("[%04X]: ", convertToPhysicalAddress(vm));
             scanf("%d", &valor);
             vm->reg[MBR] = valor;
             writeMemory(vm);
@@ -161,11 +161,13 @@ void SYS3(TVM* vm, int cantMaximaCaracteres, int tamanioCelda) {
     unsigned int i, segmento, tamanioSegmento;
     segmento = vm->reg[EDX] >> 16;
     tamanioSegmento = vm->tableSeg[segmento].size;
-    if (vm->tableSeg[segmento].size < cantMaximaCaracteres) {
+    unsigned int cantBytes = 0;
+
+    if ((vm->tableSeg[segmento].size < cantMaximaCaracteres) && (cantMaximaCaracteres != 65535)) {
         printf("Error: Segmentation fault\n");
         exit(1);
     }
-    if (cantMaximaCaracteres == -1)
+    if (cantMaximaCaracteres == -1 || cantMaximaCaracteres == 65535)
         cadena = (unsigned char*)malloc((tamanioSegmento) * sizeof(unsigned char));
     else
         cadena = (unsigned char*)malloc((cantMaximaCaracteres + 1) * sizeof(unsigned char));
@@ -176,8 +178,9 @@ void SYS3(TVM* vm, int cantMaximaCaracteres, int tamanioCelda) {
             printf("Error: Segmentation fault\n");
             exit(1);
         }
-        vm->reg[MAR] = tamanioCelda << 16;
+        vm->reg[MAR] = 1 << 16;
         vm->reg[MBR] = cadena[i];
+        cantBytes++;
         writeMemory(vm);
     }
     vm->reg[LAR] = vm->reg[EDX] + i;
@@ -185,7 +188,7 @@ void SYS3(TVM* vm, int cantMaximaCaracteres, int tamanioCelda) {
         printf("Error: Segmentation fault\n");
         exit(1);
     }
-    vm->reg[MAR] = tamanioCelda << 16;
+    vm->reg[MAR] = cantBytes << 16;
     vm->reg[MBR] = '\0';
     writeMemory(vm);
     free(cadena);
@@ -196,19 +199,20 @@ void SYS4(TVM* vm, int tipoOp1, int tipoOp2) {
     unsigned int i, segmento, tamanioSegmento;
     segmento = vm->reg[EDX] >> 16;
     i = 0;
-    vm->reg[LAR] = vm->reg[EDX] + i * 1;
+    vm->reg[LAR] = vm->reg[EDX];
+    // printf("Segundo el segmento: %u\n", segmento);
     // printf("\n[%04X]: ", convertToPhysicalAddress(vm));
     do {
         vm->reg[LAR] = vm->reg[EDX] + i * 1;
         tamanioSegmento = vm->tableSeg[segmento].size;
-        if ((vm->reg[LAR] & 0xFFFF) > tamanioSegmento) {
-            printf("Error: Segmentation fault\n");
+        // printf("tamanio segmento: %u\n", tamanioSegmento);
+        if ((vm->reg[LAR] & 0x0000FFFF) > tamanioSegmento) {
             exit(1);
         }
 
         vm->reg[MAR] = 0x00010000;  // leo 1 byte
         readMemory(vm);
-        // printf("[%04X]: ", vm->reg[MAR] & 0x0000FFFF);
+
         c = (unsigned char)(vm->reg[MBR] & 0x000000FF);
         printf("%c", c);
         // if (c >= 32 && c <= 126)
