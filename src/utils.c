@@ -41,17 +41,24 @@ int signExtend(unsigned int value, int nbytes) {
 
 int getOp(TVM* vm, int registerValue) {
     int type = (registerValue & 0xFF000000) >> 24;  // obtengo el tipo de operando
-    int opAux = registerValue & 0x00FFFFFF;         // obtengo el operando sin el tipo
+    int opAux = registerValue & 0x00FFFFFF; 
+    int aux;        // obtengo el operando sin el tipo
 
     if (type == 0b01) {  // registro
         unsigned int sectRegister = (opAux & 0x000000C0) >> 6;
         unsigned int registro = opAux & 0x0000001F;
         if (sectRegister == 0)
             return vm->reg[registro];
-        else if (sectRegister == 1)
-            return vm->reg[registro] & 0x000000FF;
-        else if (sectRegister == 2)
-            return vm->reg[registro] & 0x0000FF00;
+        else if (sectRegister == 1){
+            aux  = vm->reg[registro] & 0x000000FF;
+            aux = (aux << 24) >> 24; // extiendo el signo
+            return aux;
+        }
+        else if (sectRegister == 2){
+            aux = vm->reg[registro] & 0x0000FF00;
+            aux = (aux << 16) >> 24; // extiendo el signo
+            return aux;
+        }
         else
             return vm->reg[registro] & 0x0000FFFF;
     } else if (type == 0b10) {     // inmediato
@@ -60,19 +67,21 @@ int getOp(TVM* vm, int registerValue) {
         int registro = (opAux & 0x1F0000) >> 16;       // obtengo el registro
         int offset = (int16_t)((opAux & 0x0000FFFF));  // en [EDX + 4] el offset es 4 y extiendo el signo
         unsigned int cellSize = (opAux & 0xC00000) >> 22;
+        //printf("getOp: registro=%d, offset=%d, cellSize=%d\n", registro, offset, cellSize);
         unsigned int oldSegment = vm->reg[registro] >> 16;
         vm->reg[LAR] = vm->reg[registro] + offset;  // cargo LAR con el segmento y offset del operando
         if ((vm->reg[LAR] >> 16) != oldSegment) {
             printf("Error: Segmentation fault\n");
             exit(1);
         }
-
+        
         if (cellSize == 0)
             vm->reg[MAR] = 0x00040000;
         else if (cellSize == 2)
             vm->reg[MAR] = 0x00020000;
         else
             vm->reg[MAR] = 0x00010000;
+            //printf("Seteando MAR en getOp: %08X\n", vm->reg[MAR]);
         // seteamos MAR para leer 4 bytes
         readMemory(vm);
         return vm->reg[MBR];
@@ -90,8 +99,10 @@ void setOp(TVM* vm, int registerValue, int value) {
             vm->reg[registro] = value;
         else if (sectRegister == 1)
             vm->reg[registro] = (vm->reg[registro] & 0xFFFFFF00) | (value & 0x000000FF);
-        else if (sectRegister == 2)
-            vm->reg[registro] = (vm->reg[registro] & 0xFFFF00FF) | (value & 0x0000FF00);
+        else if (sectRegister == 2){
+            //printf("valor a guardar: %08X\n", value);
+            vm->reg[registro] = (vm->reg[registro] & 0xFFFF00FF) | ((value << 8) & 0x0000FF00);
+        }
         else
             vm->reg[registro] = (vm->reg[registro] & 0xFFFF0000) | (value & 0x0000FFFF);
     } else if (type == 0b10) {  // inmediato

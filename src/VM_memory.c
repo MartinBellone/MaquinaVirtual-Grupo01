@@ -24,6 +24,7 @@ unsigned int convertToPhysicalAddress(TVM* vm) {
     return result;
 }
 void readMemory(TVM* vm) {
+    unsigned short int esParamSegment = 0;
     int physAddr = convertToPhysicalAddress(vm);
     //  tiene que venir el MAR seteado con la cantidad de bytes a leer
     vm->reg[MAR] |= physAddr;
@@ -34,6 +35,7 @@ void readMemory(TVM* vm) {
     for (unsigned int i = 1; i <= bytesToRead; i++) {
         vm->reg[MBR] |= (vm->mem[physAddr + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
     }
+    //printf("Valor leído: %08X\n", vm->reg[MBR]);
     vm->reg[MBR] = signExtend(vm->reg[MBR], bytesToRead);
 }
 

@@ -535,6 +535,7 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
     } else {
         vm->reg[IP] = 0;
     }
+    showParamSegment(vm);
 }
 void readOp(TVM* vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
     unsigned int physAddr;
