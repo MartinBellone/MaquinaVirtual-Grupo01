@@ -61,8 +61,8 @@ void PUSH(TVM* vm, int tipoOp1, int tipoOp2) {
 }
 
 void POP(TVM* vm, int tipoOp1, int tipoOp2) {
-    if ((vm->reg[SP] && 0x0000FFFF) >= (vm->tableSeg[vm->reg[SS] >> 16].size - 3)) {
-        printf("Error: Stack underflow pop.\n");
+    if ((vm->reg[SP] & 0x0000FFFF) + 4 >= (vm->tableSeg[vm->reg[SS] >> 16].size)) {
+        printf("Error: Stack underflow.\n");
         exit(1);
     }
     int value1;
@@ -97,8 +97,8 @@ void CALL(TVM* vm, int tipoOp1, int tipoOp2) {
 }
 
 void RET(TVM* vm, int tipoOp1, int tipoOp2) {
-    if ((vm->reg[SP] && 0x0000FFFF) >= (vm->tableSeg[vm->reg[SS] >> 16].size - 3)) {
-        printf("Error: Stack underflow ret.\n");
+    if ((vm->reg[SP] & 0x0000FFFF) + 4 >= (vm->tableSeg[vm->reg[SS] >> 16].size)) {
+        printf("Error: Stack underflow.\n");
         exit(1);
     }
     // Recupero la direccion de retorno de la pila

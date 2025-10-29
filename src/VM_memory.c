@@ -26,28 +26,31 @@ unsigned int convertToPhysicalAddress(TVM* vm) {
 void readMemory(TVM* vm) {
     unsigned short int esParamSegment = 0;
     if (vm->reg[PS] != -1 && ((vm->reg[LAR] >> 16) == (vm->reg[PS] >> 16))) {
+       // printf("Leyendo del segmento de parametros\n");
         esParamSegment = 1;
     }
     int physAddr = convertToPhysicalAddress(vm);
+    //printf("Direccion fisica a leer: %04X\n", physAddr);
     //  tiene que venir el MAR seteado con la cantidad de bytes a leer
     vm->reg[MAR] |= physAddr;
     unsigned int bytesToRead = (vm->reg[MAR] & 0xFFFF0000) >> 16;
 
     vm->reg[MBR] = 0x00000000;  // inicializo MBR en 0
-    // printf("Bytes to read: %d\n", bytesToRead);
+    //printf("Bytes to read: %d\n", bytesToRead);
     if (!esParamSegment) {
         for (unsigned int i = 1; i <= bytesToRead; i++) {
             vm->reg[MBR] |= (vm->mem[physAddr + i - 1] << (8 * (bytesToRead - i)));  // leo byte a byte
         }
         vm->reg[MBR] = signExtend(vm->reg[MBR], bytesToRead);
     } else {
-        unsigned int i = 1;
-        while (vm->mem[physAddr + i - 1] != '\0') {
-            vm->reg[MBR] |= (vm->mem[physAddr + i - 1] << (8 * i));  // leo byte a byte
+        unsigned int i = physAddr;
+        while (vm->mem[i] != '\0') {
+            vm->reg[MBR] |= (vm->mem[i] << (8 * (i - physAddr)));  // leo byte a byte
+            //printf("Leyendo byte %02X del segmento de parametros\n", vm->mem[i]);
             i++;
         }
     }
-    // printf("Valor leído: %08X\n", vm->reg[MBR]);
+    //printf("Valor leído: %08X\n", vm->reg[MBR]);
 }
 
 void writeMemory(TVM* vm) {

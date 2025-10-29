@@ -634,7 +634,7 @@ void executeDisassembly(TVM* vm) {
     if (vm->reg[KS] != -1) {
         i = 0;
         while (i < vm->tableSeg[vm->reg[KS] >> 16].size) {
-            printf("[%04X]: ", vm->tableSeg[vm->reg[KS] >> 16].base + i);
+            printf("\t[%04X]: ", vm->tableSeg[vm->reg[KS] >> 16].base + i);
             char c = vm->mem[vm->tableSeg[vm->reg[KS] >> 16].base + i];
             while (c != 0 && i < vm->tableSeg[vm->reg[KS] >> 16].size) {
                 if (c >= 32 && c <= 126)  // caracteres imprimibles
