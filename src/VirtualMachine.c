@@ -476,7 +476,7 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
         if (sizes[i] != 0) {
             vm->reg[26 + i] = j << 16;
             j++;
-            printf("Registro %s asignado al segmento %d con base %04X y tamanio %d\n", REGISTER_NAMES[26 + i], j - 1, vm->reg[26 + i] >> 16, sizes[i]);
+            // printf("Registro %s asignado al segmento %d con base %04X y tamanio %d\n", REGISTER_NAMES[26 + i], j - 1, vm->reg[26 + i] >> 16, sizes[i]);
         } else
             vm->reg[26 + i] = -1;  // segmento no usado
         totalSize += sizes[i];
@@ -535,7 +535,7 @@ void initVm(TVM* vm, unsigned short int sizes[7], unsigned short int cantSegment
     } else {
         vm->reg[IP] = 0;
     }
-    showParamSegment(vm);
+    // showParamSegment(vm);
 }
 void readOp(TVM* vm, int TOP, int numOp) {  // numOp es OP1 u OP2 y TOP tipo de operando
     unsigned int physAddr;
